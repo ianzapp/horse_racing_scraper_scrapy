@@ -17,9 +17,14 @@ This is a Scrapy-based web scraper for horse racing data. The project follows st
 
 ## Key Commands
 
-**Running the main spider:**
+**Running the race entries spider:**
 ```bash
 scrapy crawl hrn_daily_racing_entries
+```
+
+**Running the power rankings spider:**
+```bash
+scrapy crawl power_rankings
 ```
 
 **Running with date filtering options:**
@@ -101,12 +106,14 @@ meta={
 
 ## Spider Details
 
-**Primary Spider**: `hrn_daily_racing_entries`
-- Uses Playwright for JavaScript-rendered content
-- Dynamically discovers tracks active for each specific date
-- Supports flexible date filtering via command-line arguments
-- Handles multiple table formats (summary and detailed)
-- Extracts comprehensive race entry data
+### Race Entries Spider: `hrn_daily_racing_entries`
+- **Purpose**: Scrape daily race entries from tracks
+- **URL**: entries.horseracingnation.com/entries-results
+- **Features**:
+  - Uses Playwright for JavaScript-rendered content
+  - Dynamically discovers tracks active for each specific date
+  - Supports flexible date filtering via command-line arguments
+  - Handles multiple table formats (summary and detailed)
 
 **Date Filtering Options:**
 - `today_only=true`: Scrape only today's entries
@@ -115,12 +122,34 @@ meta={
 - `start_date=YYYY-MM-DD`: Start date for range (generates dates dynamically)
 - `end_date=YYYY-MM-DD`: End date for range (generates dates dynamically)
 
-**Data Extracted:**
+**Data Extracted (RaceEntryItem)**:
 - Horse name, HRN power ranking, post position
 - Jockey, trainer, morning line odds
 - Track name, race date, race number
 - Sire, age, sex information
 - Entry URL and scrape timestamp
+
+### Power Rankings Spider: `power_rankings`
+- **Purpose**: Scrape HRN Power Rankings and drill into sire information
+- **URL**: horseracingnation.com/polls/current/PowerRankings_Active
+- **Features**:
+  - Uses Playwright for dynamic content
+  - Extracts comprehensive horse ranking data
+  - Follows sire links to collect detailed breeding information
+  - Follows horse detail pages for additional data
+
+**Data Extracted (PowerRankingItem)**:
+- HRN ranking position and horse details
+- Performance statistics (starts, wins, earnings)
+- Recent form and last race information
+- Breeding information (sire, dam)
+- Connections (owner, trainer, jockey)
+
+**Data Extracted (SireItem)**:
+- Basic sire information and breeding lines
+- Racing record and achievements
+- Stud information (fee, farm, location)
+- Progeny statistics and performance metrics
 
 ## Development Notes
 
