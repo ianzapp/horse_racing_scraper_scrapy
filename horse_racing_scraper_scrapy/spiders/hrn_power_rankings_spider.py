@@ -5,7 +5,7 @@ from ..items import PowerRankingItem, SireItem
 
 
 class PowerRankingsSpider(scrapy.Spider):
-    name = "hrn_power_rankings_spyder"
+    name = "hrn_power_rankings_spider"
     allowed_domains = ["horseracingnation.com"]
     start_urls = ["https://www.horseracingnation.com/polls/current/PowerRankings_Active"]
 

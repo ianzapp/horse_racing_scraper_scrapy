@@ -5,7 +5,7 @@ from ..items import RaceEntryItem
 
 
 class HrnDailyRacingEntriesSpider(scrapy.Spider):
-    name = "hrn_daily_racing_entries"
+    name = "hrn_daily_racing_entries_fixed"
     allowed_domains = ["entries.horseracingnation.com"]
     start_urls = ["https://entries.horseracingnation.com/entries-results"]
 

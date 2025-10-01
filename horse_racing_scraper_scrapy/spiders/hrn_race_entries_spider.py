@@ -6,8 +6,8 @@ import math
 from ..items import RaceEntryItem
 
 
-class BhRaceResultsSpider(scrapy.Spider):
-    name = "bh_race_results_spyder"
+class HrnRaceEntriesSpider(scrapy.Spider):
+    name = "bh_race_results_spider"
     allowed_domains = ["bloodhorse.com"]
     #start_urls = ["https://www.bloodhorse.com/horse-racing/race/race-results"]
     base_url = "https://www.bloodhorse.com/horse-racing/race/race-results/allracing"
@@ -87,7 +87,3 @@ class BhRaceResultsSpider(scrapy.Spider):
 
             # Construct the URL
             yield scrapy.Request(f"{self.base_url}?{urlencode(params)}", callback=self.parse_search_results)
-
-    def parse_search_results(self, response):
-        """Parse search results pages to extract"""
-        self.logger.info(f"Processing search results page: {response.url}")
