@@ -4,6 +4,7 @@
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 import asyncio
+import random
 from scrapy import signals
 from scrapy.http import HtmlResponse
 from scrapy.exceptions import NotConfigured
@@ -15,6 +16,19 @@ from itemadapter import ItemAdapter
 
 class PlaywrightMiddleware:
     """Scrapy downloader middleware that uses Playwright for JavaScript rendering"""
+
+    # List of realistic user agents for rotation
+    USER_AGENTS = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:90.0) Gecko/20100101 Firefox/90.0',
+        'Mozilla/5.0 (X11; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/90.0',
+    ]
 
     def __init__(self, headless=True, browser_type='chromium', timeout=30000):
         self.headless = headless
@@ -84,7 +98,12 @@ class PlaywrightMiddleware:
         try:
             page = await self.browser_context.new_page()
 
-            # Set up request headers
+            # Rotate user agent for each request
+            random_user_agent = random.choice(self.USER_AGENTS)
+            await page.set_extra_http_headers({'User-Agent': random_user_agent})
+            spider.logger.debug(f"Using user agent: {random_user_agent}")
+
+            # Set up additional request headers
             headers = {}
             if request.headers:
                 for key, value in request.headers.items():

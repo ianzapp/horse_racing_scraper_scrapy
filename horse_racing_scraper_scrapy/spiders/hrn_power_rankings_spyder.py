@@ -82,6 +82,6 @@ class PowerRankingsSpider(scrapy.Spider):
                     'trainer': trainer,
                     'jockey': jockey,
                     #'race_info': ' '.join([info.strip() for info in race_info]),
-                    'url': response.url,
-                    'scraped_at': datetime.now().isoformat()
+                    'url': response.url
+                    #,'scraped_at': datetime.now().isoformat()
                 }

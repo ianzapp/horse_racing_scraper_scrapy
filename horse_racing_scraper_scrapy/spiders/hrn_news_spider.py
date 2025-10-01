@@ -38,7 +38,7 @@ class HrnNewsSpider(scrapy.Spider):
         """Parse main page and discover date ranges, then process each date individually"""
         self.logger.info(f"Processing main page: {response.url}")
 
-        
+        # Collect the commad line parameters
         start_page = getattr(self, 'start_page', None)
         end_page = getattr(self, 'end_page', None)
         num_pages = getattr(self, 'num_pages', None)
@@ -100,6 +100,6 @@ class HrnNewsSpider(scrapy.Spider):
             'author': author,
             'publication_date': pub_date,
             'content': content,
-            'url': response.url,
-            'scraped_at': datetime.now().isoformat()
+            'url': response.url
+            #,'scraped_at': datetime.now().isoformat()
         }
