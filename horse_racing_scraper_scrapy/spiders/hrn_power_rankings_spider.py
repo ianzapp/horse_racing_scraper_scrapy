@@ -75,6 +75,7 @@ class PowerRankingsSpider(scrapy.Spider):
 
             if rank != None and rank != "" and len(rank) != 0 and rating != None and rating != "" and len(rating):
                 yield {
+                    'type:': 'power_ranking',
                     'rank': rank.strip() if rank else None,
                     'rating': rating.strip() if rating else None,
                     'horse_name': horse_name,

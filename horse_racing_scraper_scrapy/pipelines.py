@@ -119,7 +119,11 @@ class EnhancedRawJSONPipeline:
         with self.engine.connect() as conn:
             result = conn.execute(query, {'hash': data_hash}).fetchone()
             return result is not None
-            
+
+    def determine_item_type(self, item_dict):
+      return item_dict.get('type', 'general')   
+    
+    '''
     def determine_item_type(self, item_dict):
         # Simple logic to categorize items
         if 'rating' in item_dict:
@@ -130,7 +134,8 @@ class EnhancedRawJSONPipeline:
             return 'company'
         else:
             return 'general'
-            
+    '''
+    
     def update_crawl_stats(self, field):
         query = text(f"""
             UPDATE crawl_runs 

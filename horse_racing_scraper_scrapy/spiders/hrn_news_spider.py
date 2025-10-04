@@ -96,6 +96,7 @@ class HrnNewsSpider(scrapy.Spider):
         content = ' '.join([para.strip() for para in content_paragraphs if para.strip()])
 
         yield {
+            'type': 'news',
             'title': title,
             'author': author,
             'publication_date': pub_date,
