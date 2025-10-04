@@ -97,14 +97,7 @@ class HrnRaceEntriesSpider(scrapy.Spider):
 
 
     def parse_track_info(self, response):
-        '''
-        text = response.css('main h1::text').get().strip()
-        track_name = text.split(" Entries")[0]
-        formatted_date = datetime.strptime(
-            re.sub(r'^.*for [A-Za-z]+,\s*', '', text),
-            "%B %d, %Y"
-        ).strftime("%Y-%m-%d")
-        '''
+
         track_location = self.clean_text(response.css('.track-info-header::text').get().split('-')[-1])
         track_description = self.clean_text(response.css('.track-info .col-lg-8 p::text').get())
         track_website = response.css('a.track-info-link::attr(href)').get()

@@ -4,22 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Scrapy-based web scraper for horse racing data. The project follows standard Scrapy architecture with currently empty/template spider implementations.
+This is a comprehensive Scrapy-based web scraper for horse racing data from Horse Racing Nation (HRN). The project includes multiple specialized spiders for different types of racing data and uses PostgreSQL for data storage.
 
 ## Architecture
 
 - **Main Package**: `horse_racing_scraper_scrapy/` - Contains all Scrapy components
-- **Spiders**: `horse_racing_scraper_scrapy/spiders/` - Contains spider implementations (currently only `__init__.py`)
-- **Items**: `horse_racing_scraper_scrapy/items.py` - Data models for scraped items (currently template)
-- **Pipelines**: `horse_racing_scraper_scrapy/pipelines.py` - Data processing pipelines (currently template)
-- **Middlewares**: `horse_racing_scraper_scrapy/middlewares.py` - Spider and downloader middlewares (currently template)
+- **Spiders**: `horse_racing_scraper_scrapy/spiders/` - Contains multiple specialized spider implementations
+- **Items**: `horse_racing_scraper_scrapy/items.py` - Data models for scraped items
+- **Pipelines**: `horse_racing_scraper_scrapy/pipelines.py` - Data processing and PostgreSQL storage pipelines
+- **Middlewares**: `horse_racing_scraper_scrapy/middlewares.py` - Playwright and custom middlewares
 - **Settings**: `horse_racing_scraper_scrapy/settings.py` - Scrapy configuration
+- **Database**: PostgreSQL with Supabase integration for data storage
 
 ## Key Commands
 
 **Running the race entries spider:**
 ```bash
-scrapy crawl hrn_daily_racing_entries
+scrapy crawl hrn_race_entries_spider
+```
+
+**Running the news spider:**
+```bash
+scrapy crawl hrn_news_spider
 ```
 
 **Running the power rankings spider:**
@@ -29,23 +35,20 @@ scrapy crawl power_rankings
 
 **Running with date filtering options:**
 ```bash
-# Scrape today only
-scrapy crawl hrn_daily_racing_entries -a today_only=true
+# Race entries with specific date range
+scrapy crawl hrn_race_entries_spider -a start_date=2024-01-15 -a end_date=2024-01-20
 
-# Scrape yesterday (1 day back)
-scrapy crawl hrn_daily_racing_entries -a days_back=1
+# Single specific date
+scrapy crawl hrn_race_entries_spider -a start_date=2024-01-15 -a end_date=2024-01-15
 
-# Scrape next 3 days
-scrapy crawl hrn_daily_racing_entries -a days_forward=3
+# News spider with page range
+scrapy crawl hrn_news_spider -a start_page=1 -a end_page=5
 
-# Scrape specific date range
-scrapy crawl hrn_daily_racing_entries -a start_date=2024-01-15 -a end_date=2024-01-20
-
-# Scrape single specific date
-scrapy crawl hrn_daily_racing_entries -a start_date=2024-01-15 -a end_date=2024-01-15
+# News spider with maximum pages
+scrapy crawl hrn_news_spider -a start_page=1 -a num_pages=max
 
 # Save output to file
-scrapy crawl hrn_daily_racing_entries -a days_back=1 -o yesterday_entries.json
+scrapy crawl hrn_race_entries_spider -a start_date=2024-01-15 -o entries.json
 ```
 
 **List available spiders:**
@@ -104,30 +107,46 @@ meta={
 }
 ```
 
-## Spider Details
+## Available Spiders
 
-### Race Entries Spider: `hrn_daily_racing_entries`
-- **Purpose**: Scrape daily race entries from tracks
+### Race Entries Spider: `hrn_race_entries_spider`
+- **Purpose**: Scrape comprehensive race entries and track information
 - **URL**: entries.horseracingnation.com/entries-results
 - **Features**:
   - Uses Playwright for JavaScript-rendered content
-  - Dynamically discovers tracks active for each specific date
-  - Supports flexible date filtering via command-line arguments
-  - Handles multiple table formats (summary and detailed)
+  - Modular parsing architecture with separate methods for different data types
+  - Built-in text cleaning to remove newlines and normalize whitespace
+  - Generates date ranges dynamically between start and end dates
+  - Extracts multiple data types from each track page
 
 **Date Filtering Options:**
-- `today_only=true`: Scrape only today's entries
-- `days_back=N`: Scrape N days back from today
-- `days_forward=N`: Scrape N days forward from today
-- `start_date=YYYY-MM-DD`: Start date for range (generates dates dynamically)
-- `end_date=YYYY-MM-DD`: End date for range (generates dates dynamically)
+- `start_date=YYYY-MM-DD`: Start date for range
+- `end_date=YYYY-MM-DD`: End date for range (defaults to 7 days from start_date if not provided)
 
-**Data Extracted (RaceEntryItem)**:
-- Horse name, HRN power ranking, post position
-- Jockey, trainer, morning line odds
-- Track name, race date, race number
-- Sire, age, sex information
-- Entry URL and scrape timestamp
+**Data Types Extracted:**
+- `track_info`: Track metadata, location, website, description
+- `race_card`: Race details, restrictions, purse, wagering options, expert picks
+- `race_entry`: Individual horse entries with trainer, jockey, odds, speed figures
+- `hrn_speed_result`: HRN speed figures and rankings
+
+### News Spider: `hrn_news_spider`
+- **Purpose**: Scrape news articles from Horse Racing Nation
+- **URL**: horseracingnation.com/news
+- **Features**:
+  - Paginated article extraction
+  - Full article content scraping
+  - Author and publication date extraction
+
+**Pagination Options:**
+- `start_page=N`: Starting page number (default: 1)
+- `end_page=N`: Ending page number
+- `num_pages=N`: Number of pages to scrape from start_page
+- `num_pages=max`: Scrape all available pages
+
+**Data Extracted:**
+- Article title, author, publication date
+- Full article content
+- Source URL
 
 ### Power Rankings Spider: `power_rankings`
 - **Purpose**: Scrape HRN Power Rankings and drill into sire information
@@ -151,9 +170,37 @@ meta={
 - Stud information (fee, farm, location)
 - Progeny statistics and performance metrics
 
+## Data Pipeline
+
+### PostgreSQL Storage
+- **Database**: Supabase PostgreSQL instance
+- **Pipeline**: `EnhancedRawJSONPipeline`
+- **Features**:
+  - Automatic deduplication using content hashes
+  - Crawl run tracking with UUIDs
+  - Item type classification based on data structure
+  - Raw JSON storage in `raw_scraped_data` table
+  - Crawl statistics and error tracking
+
+### Data Processing
+- **Text Cleaning**: Automatic removal of newlines and whitespace normalization
+- **Type Detection**: Items automatically categorized as `track_info`, `race_card`, `race_entry`, `news`, etc.
+- **Deduplication**: Content-based deduplication using SHA-256 hashes
+- **Error Handling**: Failed items tracked in crawl statistics
+
 ## Development Notes
 
-- **Site Architecture**: Main page shows race schedules; individual track pages have entries
-- **Dynamic Track Discovery**: Each date may have different active tracks
-- **Multiple Fallback Strategies**: URL parameters, JavaScript navigation, known track attempts
-- **Dependencies**: Scrapy, Playwright, Python 3.13+
+- **Site Architecture**: Main page shows race schedules; individual track pages have comprehensive data
+- **Dynamic Content**: Uses Playwright for JavaScript-rendered pages
+- **Modular Design**: Separate parsing methods for different data types
+- **Robust Selectors**: CSS selectors optimized for reliability and maintainability
+- **Text Processing**: Built-in cleaning methods for consistent data quality
+- **Dependencies**: Scrapy, Playwright, SQLAlchemy, psycopg2, Python 3.13+
+
+## Data Quality Features
+
+- **Clean Text Extraction**: `clean_text()` helper method removes newlines and normalizes whitespace
+- **Robust Cell Parsing**: Handles variable table structures with padding and truncation
+- **Link Text Extraction**: Extracts both direct text and link text from HTML elements
+- **Safe Pattern Matching**: Regex patterns with error handling for data extraction
+- **Consistent Field Mapping**: Standardized field names across all spider outputs
