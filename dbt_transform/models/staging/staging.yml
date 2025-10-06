@@ -1,0 +1,104 @@
+version: 2
+
+models:
+  - name: stg_race_entries
+    description: Cleaned and typed race entry data from raw JSON
+    columns:
+      - name: id
+        description: Source record ID
+        tests:
+          - not_null
+          - unique
+      - name: business_key
+        description: Business key for deduplication
+        tests:
+          - not_null
+      - name: track_name
+        description: Name of the track
+        tests:
+          - not_null
+      - name: race_date
+        description: Date of the race
+        tests:
+          - not_null
+      - name: horse_name
+        description: Name of the horse
+        tests:
+          - not_null
+      - name: post_position
+        description: Starting position
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 20
+      - name: speed_figure
+        description: HRN speed figure
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 150
+      - name: odds_decimal
+        description: Odds in decimal format
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+  - name: stg_race_cards
+    description: Race card information
+    columns:
+      - name: business_key
+        description: Business key for deduplication
+        tests:
+          - not_null
+          - unique
+      - name: track_name
+        tests:
+          - not_null
+      - name: race_date
+        tests:
+          - not_null
+      - name: race_number
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 15
+      - name: distance_furlongs
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 2
+              max_value: 20
+      - name: surface_type
+        tests:
+          - accepted_values:
+              values: ['Dirt', 'Turf', 'Synthetic', 'All Weather', 'Unknown']
+
+  - name: stg_race_results
+    description: Race results with payouts
+    columns:
+      - name: business_key
+        tests:
+          - not_null
+          - unique
+      - name: finish_position
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 20
+      - name: win_payout
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 2.0
+              max_value: 1000.0
+      - name: place_payout
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 2.0
+              max_value: 500.0
+      - name: show_payout
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 2.0
+              max_value: 200.0

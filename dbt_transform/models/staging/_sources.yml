@@ -1,0 +1,64 @@
+version: 2
+
+sources:
+  - name: public
+    description: Raw scraped data from horse racing websites
+    tables:
+      - name: raw_scraped_data
+        description: Raw JSON data from web scraping
+        columns:
+          - name: id
+            description: Primary key
+            tests:
+              - not_null
+              - unique
+          - name: spider_name
+            description: Name of the spider that collected the data
+            tests:
+              - not_null
+          - name: source_url
+            description: URL where data was scraped from
+            tests:
+              - not_null
+          - name: raw_data
+            description: JSON data containing scraped information
+            tests:
+              - not_null
+          - name: crawl_run_id
+            description: UUID identifying the crawl run
+            tests:
+              - not_null
+          - name: data_hash
+            description: SHA-256 hash for deduplication
+            tests:
+              - not_null
+              - unique
+          - name: item_type
+            description: Type of scraped item (race_entry, track_info, etc.)
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['race_entry', 'track_info', 'race_card', 'race_result', 'race_payout', 'news', 'hrn_speed_result']
+          - name: created_at
+            description: Timestamp when record was created
+            tests:
+              - not_null
+
+      - name: crawl_runs
+        description: Metadata about crawl runs
+        columns:
+          - name: id
+            description: UUID primary key
+            tests:
+              - not_null
+              - unique
+          - name: spider_name
+            description: Name of the spider
+          - name: source_domain
+            description: Domain that was crawled
+          - name: status
+            description: Status of the crawl run
+          - name: total_items
+            description: Total items scraped
+          - name: failed_items
+            description: Number of failed items

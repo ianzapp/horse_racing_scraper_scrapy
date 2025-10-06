@@ -14,19 +14,53 @@ A comprehensive Scrapy-based web scraper for collecting horse racing data from H
 
 ## Installation
 
-1. Clone the repository:
+### 1. Clone and Setup Environment
 ```bash
 git clone <repository-url>
 cd horse_racing_scraper_scrapy
 ```
 
-2. Install dependencies:
+### 2. Create Virtual Environment (Recommended)
 ```bash
-pip install scrapy playwright sqlalchemy psycopg2-binary
-playwright install chromium
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # On macOS/Linux
+# OR on Windows:
+# venv\Scripts\activate
+
+# Upgrade pip
+pip install --upgrade pip
 ```
 
-3. Configure PostgreSQL connection in `pipelines.py` (optional - can also output to files)
+### 3. Install Dependencies
+```bash
+# Install Scrapy dependencies
+pip install scrapy playwright sqlalchemy psycopg2-binary
+playwright install chromium
+
+# Install dbt for data transformation
+pip install "dbt-postgres>=1.6.0" "dbt-core>=1.6.0"
+
+# Verify installations
+scrapy version
+dbt --version
+```
+
+### 4. Setup dbt (Data Transformation)
+```bash
+# Navigate to dbt directory
+cd dbt_transform
+
+# Install dbt packages
+dbt deps
+
+# Test database connection
+dbt debug --profiles-dir .
+```
+
+**Note**: PostgreSQL connection is pre-configured in `pipelines.py` for Supabase. You can also output to files instead.
 
 ## Available Spiders
 
@@ -83,6 +117,32 @@ Data is automatically stored in PostgreSQL when the pipeline is enabled. Each it
 - Crawl run ID for tracking
 - Item type classification
 - Source URL and timestamp
+
+### Data Transformation with dbt
+Transform raw JSON data into normalized analytical tables:
+
+```bash
+# Navigate to dbt directory
+cd dbt_transform
+
+# Run initial transformation
+dbt run --profiles-dir .
+
+# Run data quality tests
+dbt test --profiles-dir .
+
+# Incremental updates (only new data)
+dbt run --profiles-dir .
+
+# Generate documentation
+dbt docs generate --profiles-dir .
+dbt docs serve --profiles-dir .
+```
+
+**dbt Models Created:**
+- **Staging**: `stg_race_entries`, `stg_race_cards`, `stg_race_results`, `stg_track_info`
+- **Dimensions**: `dim_tracks`, `dim_horses`, `dim_trainers`, `dim_jockeys`
+- **Facts**: `fct_races`, `fct_race_entries`, `fct_race_results`
 
 ## Data Structure
 
@@ -162,14 +222,25 @@ The scrapers use conservative, production-ready settings:
 ### Project Structure
 ```
 horse_racing_scraper_scrapy/
-├── spiders/
-│   ├── hrn_race_entries_spider.py     # Main race entries spider
-│   ├── hrn_news_spider.py             # News articles spider
-│   └── power_rankings.py              # Power rankings spider
-├── items.py                           # Data models (Scrapy items)
-├── pipelines.py                       # PostgreSQL storage pipeline
-├── middlewares.py                     # Playwright middleware
-└── settings.py                        # Scrapy configuration
+├── horse_racing_scraper_scrapy/       # Main Scrapy package
+│   ├── spiders/
+│   │   ├── hrn_race_entries_spider.py # Main race entries spider
+│   │   ├── hrn_news_spider.py         # News articles spider
+│   │   └── power_rankings.py          # Power rankings spider
+│   ├── items.py                       # Data models (Scrapy items)
+│   ├── pipelines.py                   # PostgreSQL storage pipeline
+│   ├── middlewares.py                 # Playwright middleware
+│   └── settings.py                    # Scrapy configuration
+├── dbt_transform/                     # dbt transformation project
+│   ├── models/
+│   │   ├── staging/                   # Clean and type raw data
+│   │   └── marts/                     # Dimensional model
+│   ├── tests/                         # Data quality tests
+│   ├── dbt_project.yml               # dbt configuration
+│   └── profiles.yml                   # Database connections
+├── venv/                              # Virtual environment (created)
+├── requirements_dbt.txt               # dbt dependencies
+└── README.md                          # This file
 ```
 
 ### Available Commands
@@ -226,24 +297,59 @@ When making changes:
 5. Test modular parsing methods individually
 6. Ensure proper error handling and logging
 
+## Complete Workflow Example
+
+### Daily Data Collection and Transformation
+```bash
+# 1. Activate virtual environment
+source venv/bin/activate
+
+# 2. Collect today's race data
+scrapy crawl hrn_race_entries_spider -a start_date=$(date +%Y-%m-%d) -a end_date=$(date +%Y-%m-%d)
+
+# 3. Collect latest news (first 3 pages)
+scrapy crawl hrn_news_spider -a start_page=1 -a end_page=3
+
+# 4. Transform new data
+cd dbt_transform
+dbt run --profiles-dir .
+dbt test --profiles-dir .
+cd ..
+
+# 5. Check results
+echo "Data collection and transformation complete!"
+```
+
 ## Troubleshooting
 
-### Common Issues
+### Environment Issues
+- **pip install errors**: Use quotes around version specs: `pip install "dbt-postgres>=1.6.0"`
+- **Virtual environment**: Always activate venv: `source venv/bin/activate`
+- **Python path issues**: Use `python3 -m pip` instead of `pip` if needed
+
+### Scraping Issues
 - **Empty results**: Check if tracks are active on selected dates
 - **Database errors**: Verify PostgreSQL connection and table schema
 - **Text encoding**: Ensure UTF-8 encoding for international characters
 - **JavaScript timeouts**: Increase Playwright wait times for slow-loading pages
 
+### dbt Issues
+- **Connection errors**: Check `dbt_transform/profiles.yml` database credentials
+- **Missing dependencies**: Run `dbt deps` in dbt_transform directory
+- **Test failures**: Check data quality, may need to adjust validation ranges
+
 ### Debugging
 ```bash
-# Enable debug logging
+# Scrapy debugging
 scrapy crawl hrn_race_entries_spider -L DEBUG
 
 # Test specific URL
 scrapy shell "https://entries.horseracingnation.com/entries-results/track/2024-01-15"
 
-# Check pipeline processing
-scrapy crawl hrn_race_entries_spider -s ITEM_PIPELINES='{"horse_racing_scraper_scrapy.pipelines.HorseRacingScraperScrapyPipeline": 300}'
+# dbt debugging
+cd dbt_transform
+dbt debug --profiles-dir .
+dbt compile --select model_name --profiles-dir .
 ```
 
 ## License

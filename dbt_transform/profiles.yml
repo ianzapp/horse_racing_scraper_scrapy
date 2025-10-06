@@ -1,0 +1,25 @@
+horse_racing:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: db.itzwxbopifncdbrhzlma.supabase.co
+      user: postgres
+      password: 0UcZXEAJMouLadi0
+      port: 5432
+      dbname: postgres
+      schema: public
+      threads: 4
+      keepalives_idle: 0
+      search_path: public
+    prod:
+      type: postgres
+      host: db.itzwxbopifncdbrhzlma.supabase.co
+      user: postgres
+      password: 0UcZXEAJMouLadi0
+      port: 5432
+      dbname: postgres
+      schema: dbt_prod
+      threads: 4
+      keepalives_idle: 0
+      search_path: dbt_prod

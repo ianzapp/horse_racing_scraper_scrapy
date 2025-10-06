@@ -88,9 +88,9 @@ class HrnRaceEntriesSpider(scrapy.Spider):
         ).strftime("%Y-%m-%d")
         
         # Extract basic track info first
-        ##yield from self.parse_track_info(response)
+        yield from self.parse_track_info(response)
 
-        ##yield from self.parse_hrn_speed_results(response)
+        yield from self.parse_hrn_speed_results(response)
 
         # Extract race entries and horse information
         yield from self.parse_races(response)
@@ -117,13 +117,12 @@ class HrnRaceEntriesSpider(scrapy.Spider):
             race_header = race_card.css('.race-header::text').get()
             cleaned_header = self.clean_text(race_header)
             match = re.search(r'Race # (\d+)', cleaned_header)
-            race_number = match.group(1) if match else None
+            self.race_number = match.group(1) if match else None
             race_time = response.css('time::attr(datetime)').get()
             race_distance = self.clean_text(race_card.css('.race-distance::text').get())
             race_restrictions = self.clean_text(race_card.css('.race-restrictions::text').get())
             race_purse = self.clean_text(race_card.css('.race-purse::text').get())
             race_wager = self.clean_text(race_card.css('.race-wager-text::text').get())
-            #race_report = race_card.css('.report-data::text').get()
             after_br_text = race_card.xpath('//ul[@class="report-data"]//p/br/following-sibling::text()').getall()
             race_report = ' '.join(after_br_text).strip()
             
@@ -132,7 +131,7 @@ class HrnRaceEntriesSpider(scrapy.Spider):
                 'track_name': self.track_name,
                 'race_date': self.formatted_date,
                 'race_time': race_time,
-                'race_number': race_number,
+                'race_number': self.race_number,
                 'race_distance': race_distance,
                 'race_restrictions': race_restrictions,
                 'race_purse': race_purse,
@@ -141,10 +140,18 @@ class HrnRaceEntriesSpider(scrapy.Spider):
                 'url': response.url
             }
 
-            race_entries = response.css('table.table-entries tbody tr')
+            race_entries = race_card.css('table.table-entries tbody tr')
             for race_entry in race_entries:
                 post_position = self.clean_text(race_entry.css('td[data-label="Post Position"]::text').get())
-                horse_name = self.clean_text(race_entry.css('td[data-label="Horse / Sire"] a.horse-link::text').get())
+                # Try to get horse name from link first, fallback to direct text
+                horse_name = race_entry.css('td[data-label="Horse / Sire"] a.horse-link::text').get()
+                if not horse_name:
+                    # Fallback: get horse name from h4 tag or direct text
+                    horse_name = race_entry.css('td[data-label="Horse / Sire"] h4::text').get()
+                if not horse_name:
+                    # Final fallback: get any text from the cell
+                    horse_name = race_entry.css('td[data-label="Horse / Sire"]::text').get()
+                horse_name = self.clean_text(horse_name)
                 speed_figure = race_entry.css('td[data-label="Horse / Sire"] span.small::text').get()
                 if speed_figure:
                     speed_figure = speed_figure.strip('()')
@@ -158,8 +165,9 @@ class HrnRaceEntriesSpider(scrapy.Spider):
                     'type': 'race_entry',
                     'track_name': self.track_name,
                     'race_date': self.formatted_date,
-                    'post_position': post_position,
+                    'race_number': self.race_number,
                     'horse_name': horse_name,
+                    'post_position': post_position,
                     'speed_figure': speed_figure,
                     'sire': sire,
                     'trainer': trainer,
@@ -167,13 +175,48 @@ class HrnRaceEntriesSpider(scrapy.Spider):
                     'odds': odds,
                     'url': response.url
                 }
+            
+            race_results = race_card.css('table.table-payouts tbody tr')
+            for index, race_result in enumerate(race_results):
+                horse_name = self.clean_text(race_result.css('td:nth-child(1)::text').get())
+                win_payout = self.clean_text(race_result.css('td:nth-child(3)::text').get())
+                place_payout = self.clean_text(race_result.css('td:nth-child(4)::text').get())
+                show_payout = self.clean_text(race_result.css('td:nth-child(5)::text').get())
+                yield {
+                    'type': 'race_result',
+                    'track_name': self.track_name,
+                    'race_date': self.formatted_date,
+                    'race_number': self.race_number,
+                    'finish_position': index + 1,
+                    'horse_name': horse_name,
+                    'win_payout': win_payout,
+                    'place_payout': place_payout,
+                    'show_payout': show_payout,
+                    'url': response.url
+                }
+            
+            race_payouts = race_card.css('table.table-exotic-payouts tbody tr')
+            self.logger.info(f"Found {len(race_payouts)} exotic payouts for race {self.race_number}")
+            for index, race_payout in enumerate(race_payouts):
+                pool = self.clean_text(race_payout.css('td:nth-child(1)::text').get())
+                finish = self.clean_text(race_payout.css('td:nth-child(2)::text').get())
+                two_dollar_payout = self.clean_text(race_payout.css('td:nth-child(3)::text').get())
+                total_pool = self.clean_text(race_payout.css('td:nth-child(4)::text').get())
+                yield {
+                    'type': 'race_payout',
+                    'track_name': self.track_name,
+                    'race_date': self.formatted_date,
+                    'race_number': self.race_number,
+                    'pool': pool,
+                    'finish': finish,
+                    'two_dollar_payout': two_dollar_payout,
+                    'total_pool': total_pool,
+                    'url': response.url
+                }
 
 
     
     def parse_hrn_speed_results(self, response):
-        #response.css('table.table-speed').get()
-        #text = response.css('main h1::text').get().strip()
-        #track_name = text.split(" Entries")[0]
 
         table = response.css('table.table-speed')
         rows = table.css('tbody tr')
@@ -196,26 +239,6 @@ class HrnRaceEntriesSpider(scrapy.Spider):
                 'age': cells[4],
                 'url': response.url
             }
-
-
-    def parse_race_entries(self, response):
-        for race in response.css('.race-card'):
-            race_number = race.css('.race-number::text').get()
-
-            for horse in race.css('.horse-entry'):
-                yield {
-                    'type': 'race_entry',
-                    'track_name': self.track_name,
-                    'race_date': self.formatted_date,
-                    'race_time': race_time,
-                    'race_number': race_number,
-                    'horse_name': horse.css('.horse-name::text').get(),
-                    'jockey': horse.css('.jockey::text').get(),
-                    'trainer': horse.css('.trainer::text').get(),
-                    'odds': horse.css('.odds::text').get(),
-                    # ... more fields
-                    'url': response.url
-                } 
         
 
     def generate_date_range(self, start_date, end_date):

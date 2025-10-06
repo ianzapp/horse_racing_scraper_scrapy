@@ -1,0 +1,99 @@
+version: 2
+
+models:
+  - name: dim_tracks
+    description: Track dimension table
+    columns:
+      - name: track_key
+        description: Surrogate key for track
+        tests:
+          - not_null
+          - unique
+      - name: track_name
+        description: Track name
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_horses
+    description: Horse dimension table
+    columns:
+      - name: horse_key
+        tests:
+          - not_null
+          - unique
+      - name: horse_name
+        tests:
+          - not_null
+
+  - name: dim_trainers
+    description: Trainer dimension table
+    columns:
+      - name: trainer_key
+        tests:
+          - not_null
+          - unique
+      - name: trainer_name
+        tests:
+          - not_null
+
+  - name: dim_jockeys
+    description: Jockey dimension table
+    columns:
+      - name: jockey_key
+        tests:
+          - not_null
+          - unique
+      - name: jockey_name
+        tests:
+          - not_null
+
+  - name: fct_races
+    description: Race fact table
+    columns:
+      - name: race_key
+        tests:
+          - not_null
+          - unique
+      - name: track_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_tracks')
+              field: track_key
+
+  - name: fct_race_entries
+    description: Race entries fact table
+    columns:
+      - name: entry_key
+        tests:
+          - not_null
+          - unique
+      - name: race_key
+        tests:
+          - relationships:
+              to: ref('fct_races')
+              field: race_key
+      - name: horse_key
+        tests:
+          - relationships:
+              to: ref('dim_horses')
+              field: horse_key
+
+  - name: fct_race_results
+    description: Race results fact table
+    columns:
+      - name: result_key
+        tests:
+          - not_null
+          - unique
+      - name: race_key
+        tests:
+          - relationships:
+              to: ref('fct_races')
+              field: race_key
+      - name: horse_key
+        tests:
+          - relationships:
+              to: ref('dim_horses')
+              field: horse_key

@@ -15,6 +15,37 @@ This is a comprehensive Scrapy-based web scraper for horse racing data from Hors
 - **Middlewares**: `horse_racing_scraper_scrapy/middlewares.py` - Playwright and custom middlewares
 - **Settings**: `horse_racing_scraper_scrapy/settings.py` - Scrapy configuration
 - **Database**: PostgreSQL with Supabase integration for data storage
+- **dbt Transform**: `dbt_transform/` - dbt project for transforming raw JSON into normalized dimensional model
+
+## Environment Setup
+
+**Create and activate virtual environment:**
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # On macOS/Linux
+# or
+venv\Scripts\activate     # On Windows
+
+# Upgrade pip
+pip install --upgrade pip
+```
+
+**Install dependencies:**
+```bash
+# Install Scrapy dependencies
+pip install scrapy playwright sqlalchemy psycopg2-binary
+playwright install chromium
+
+# Install dbt dependencies (for data transformation)
+pip install "dbt-postgres>=1.6.0" "dbt-core>=1.6.0"
+
+# Verify installations
+scrapy version
+dbt --version
+```
 
 ## Key Commands
 
@@ -182,6 +213,38 @@ meta={
   - Raw JSON storage in `raw_scraped_data` table
   - Crawl statistics and error tracking
 
+### Data Transformation (dbt)
+- **Location**: `dbt_transform/` directory
+- **Purpose**: Transform raw JSON into normalized dimensional model
+- **Architecture**: Staging → Dimensions → Facts
+- **Features**:
+  - Incremental processing for performance
+  - Data quality tests and validation
+  - Automated schema generation
+  - Documentation generation
+
+**dbt Setup and Usage:**
+```bash
+# Navigate to dbt directory
+cd dbt_transform
+
+# Install dbt packages
+dbt deps
+
+# Test database connection
+dbt debug --profiles-dir .
+
+# Run transformations (initial build)
+dbt run --profiles-dir .
+
+# Run data quality tests
+dbt test --profiles-dir .
+
+# Generate documentation
+dbt docs generate --profiles-dir .
+dbt docs serve --profiles-dir .
+```
+
 ### Data Processing
 - **Text Cleaning**: Automatic removal of newlines and whitespace normalization
 - **Type Detection**: Items automatically categorized as `track_info`, `race_card`, `race_entry`, `news`, etc.
@@ -195,7 +258,54 @@ meta={
 - **Modular Design**: Separate parsing methods for different data types
 - **Robust Selectors**: CSS selectors optimized for reliability and maintainability
 - **Text Processing**: Built-in cleaning methods for consistent data quality
-- **Dependencies**: Scrapy, Playwright, SQLAlchemy, psycopg2, Python 3.13+
+- **Virtual Environment**: Always use venv for dependency isolation
+- **Dependencies**: Scrapy, Playwright, SQLAlchemy, psycopg2, dbt-core, dbt-postgres, Python 3.11+
+
+## Project Workflow
+
+### 1. Initial Setup
+```bash
+# Clone and setup environment
+git clone <repository-url>
+cd horse_racing_scraper_scrapy
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install scrapy playwright sqlalchemy psycopg2-binary
+pip install "dbt-postgres>=1.6.0" "dbt-core>=1.6.0"
+playwright install chromium
+```
+
+### 2. Run Data Collection
+```bash
+# Scrape recent race data
+scrapy crawl hrn_race_entries_spider -a start_date=2024-01-15 -a end_date=2024-01-20
+
+# Scrape news articles
+scrapy crawl hrn_news_spider -a start_page=1 -a end_page=5
+```
+
+### 3. Transform Data
+```bash
+# Transform raw JSON into analytical tables
+cd dbt_transform
+dbt deps
+dbt run --profiles-dir .
+dbt test --profiles-dir .
+```
+
+### 4. Monitor and Maintain
+```bash
+# Check data quality
+dbt test --profiles-dir .
+
+# Update incrementally
+dbt run --profiles-dir .
+
+# View documentation
+dbt docs generate --profiles-dir .
+dbt docs serve --profiles-dir .
+```
 
 ## Data Quality Features
 
