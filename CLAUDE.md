@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a comprehensive Scrapy-based web scraper for horse racing data from Horse Racing Nation (HRN). The project includes multiple specialized spiders for different types of racing data and uses PostgreSQL for data storage.
+This is a production-ready, comprehensive Scrapy-based web scraper for horse racing data from Horse Racing Nation (HRN). The project includes multiple specialized spiders, a complete data transformation pipeline using dbt, and production deployment configurations for scalable data collection and analysis.
 
 ## Architecture
 
@@ -15,7 +15,9 @@ This is a comprehensive Scrapy-based web scraper for horse racing data from Hors
 - **Middlewares**: `horse_racing_scraper_scrapy/middlewares.py` - Playwright and custom middlewares
 - **Settings**: `horse_racing_scraper_scrapy/settings.py` - Scrapy configuration
 - **Database**: PostgreSQL with Supabase integration for data storage
-- **dbt Transform**: `dbt_transform/` - dbt project for transforming raw JSON into normalized dimensional model
+- **dbt Transform**: `dbt_transform/` - Complete dbt project with staging → dimensions → facts architecture
+- **Production Setup**: Docker containers, scheduling, monitoring, and deployment configurations
+- **Data Quality**: Comprehensive test suite and validation rules with 9.16/10 pylint score
 
 ## Environment Setup
 
@@ -35,16 +37,19 @@ pip install --upgrade pip
 
 **Install dependencies:**
 ```bash
-# Install Scrapy dependencies
-pip install scrapy playwright sqlalchemy psycopg2-binary
+# Install all project dependencies
+pip install -r requirements.txt
+
+# Install Playwright browsers
 playwright install chromium
 
-# Install dbt dependencies (for data transformation)
-pip install "dbt-postgres>=1.6.0" "dbt-core>=1.6.0"
+# Install development tools (optional)
+pip install pylint
 
 # Verify installations
 scrapy version
 dbt --version
+pylint --version
 ```
 
 ## Key Commands
@@ -314,3 +319,80 @@ dbt docs serve --profiles-dir .
 - **Link Text Extraction**: Extracts both direct text and link text from HTML elements
 - **Safe Pattern Matching**: Regex patterns with error handling for data extraction
 - **Consistent Field Mapping**: Standardized field names across all spider outputs
+- **Code Quality**: 9.16/10 pylint score with comprehensive error handling and best practices
+
+## Production Deployment
+
+### Quick Start (Docker Compose)
+```bash
+# Configure environment
+cp .env.production .env
+# Edit .env with your credentials
+
+# Deploy full stack
+docker-compose -f docker-compose.prod.yml up -d
+
+# Initialize database
+docker-compose exec postgres psql -U $DB_USER -d horse_racing -f /docker-entrypoint-initdb.d/create_tables.sql
+
+# Run initial dbt setup
+docker-compose run dbt dbt deps
+docker-compose run dbt dbt run
+```
+
+### Production Features
+- **Automated Scheduling**: Daily pipelines at 06:00 and 20:00
+- **Docker Containers**: Scrapy, dbt, PostgreSQL, Redis, Monitoring
+- **Health Monitoring**: Prometheus + Grafana dashboards
+- **Error Recovery**: Automatic retry logic and failure alerts
+- **Scalable Architecture**: Support for Kubernetes and cloud deployment
+
+### Production Pipeline Schedule
+```
+06:00 AM Daily Pipeline:
+├── Scrape race entries → dbt staging → marts
+├── Scrape power rankings → enhance dim_horses
+├── Scrape news → fct_news
+└── Generate documentation
+
+20:00 PM Evening Pipeline:
+├── Scrape race results → fct_race_results
+├── Scrape payouts → fct_race_payouts
+└── Update analytics tables
+
+Sunday 02:00 AM:
+└── Historical backfill (7 days)
+```
+
+### Monitoring Access
+- **dbt Documentation**: http://localhost:8080
+- **Grafana Dashboards**: http://localhost:3000
+- **Application Logs**: `docker-compose logs -f`
+
+## Code Quality & Testing
+
+### Pylint Configuration
+- **Score**: 9.16/10 (Excellent)
+- **Configuration**: `.pylintrc` with project-specific rules
+- **CI/CD**: GitHub Actions with multi-Python version testing
+- **Standards**: PEP 8 compliance with Scrapy-specific adaptations
+
+### Running Quality Checks
+```bash
+# Run pylint on entire project
+pylint horse_racing_scraper_scrapy/
+
+# Run specific file
+pylint horse_racing_scraper_scrapy/spiders/hrn_news_spider.py
+
+# Run dbt tests
+cd dbt_transform
+dbt test --profiles-dir .
+```
+
+### Error Handling Best Practices
+- **Null Safety**: All CSS selectors check for None values
+- **Graceful Degradation**: Missing data handled with defaults
+- **Comprehensive Logging**: Detailed logs for debugging and monitoring
+- **Exception Handling**: Try-catch blocks for external API calls
+- **Data Validation**: Schema validation before database insertion

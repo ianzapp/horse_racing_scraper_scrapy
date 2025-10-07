@@ -1,0 +1,32 @@
+# Core scraping framework
+scrapy>=2.13.0
+
+# JavaScript rendering
+playwright>=1.55.0
+
+# Database connectivity
+psycopg2-binary>=2.9.0
+SQLAlchemy>=2.0.0
+
+# Task queue and caching
+celery>=5.3.0
+redis>=5.0.0
+
+# Scheduling
+schedule>=1.2.0
+
+# Data processing
+pandas>=2.0.0
+
+# HTTP requests
+requests>=2.31.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Monitoring and logging
+prometheus-client>=0.20.0
+
+# Data transformation (if running dbt in same container)
+dbt-postgres>=1.6.0
+dbt-core>=1.6.0

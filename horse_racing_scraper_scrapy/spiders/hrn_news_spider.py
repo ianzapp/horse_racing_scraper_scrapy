@@ -1,8 +1,6 @@
-import scrapy
-from datetime import datetime, timedelta
 from urllib.parse import urljoin
-import re
-from ..items import RaceEntryItem
+
+import scrapy
 
 
 class HrnNewsSpider(scrapy.Spider):
@@ -76,8 +74,12 @@ class HrnNewsSpider(scrapy.Spider):
         self.logger.info(f"Found {len(articles)}: {response.url}")
 
         for article in articles:
-            article_url = urljoin(response.url, article.css('h3 a::attr(href)').get().strip())
-            yield scrapy.Request(article_url, callback=self.parse_article)
+            href = article.css('h3 a::attr(href)').get()
+            if href:
+                article_url = urljoin(response.url, href.strip())
+                yield scrapy.Request(article_url, callback=self.parse_article)
+            else:
+                self.logger.warning(f"No href found for article: {article.get()}")
 
     def parse_article(self, response):
         """Parse individual article pages to extract content"""
@@ -89,18 +91,26 @@ class HrnNewsSpider(scrapy.Spider):
         #         response.css('[class*="author"]::text').get() or
         #         response.css('span:contains("staff")::text').get()).strip()
 
-        title = response.css('h1::text').get().strip()
-        author = response.css('span.byline::text').get().strip()
-        pub_date = response.css('time::text').get().strip()
+        title = response.css('h1::text').get()
+        author = response.css('span.byline::text').get()
+        pub_date = response.css('time::text').get()
+
+        # Safely strip values if they exist
+        title = title.strip() if title else 'No Title'
+        author = author.strip() if author else 'Unknown Author'
+        pub_date = pub_date.strip() if pub_date else ''
         content_paragraphs = response.css('div p::text').getall()
         content = ' '.join([para.strip() for para in content_paragraphs if para.strip()])
 
-        yield {
-            'type': 'news',
-            'title': title,
-            'author': author,
-            'publication_date': pub_date,
-            'content': content,
-            'url': response.url
-            #,'scraped_at': datetime.now().isoformat()
-        }
+        # Only yield if we have essential data
+        if title and title != 'No Title':
+            yield {
+                'type': 'news',
+                'title': title,
+                'author': author,
+                'publication_date': pub_date,
+                'content': content,
+                'url': response.url
+            }
+        else:
+            self.logger.warning(f"Skipping article with no title: {response.url}")
