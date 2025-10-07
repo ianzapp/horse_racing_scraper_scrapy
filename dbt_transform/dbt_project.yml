@@ -24,8 +24,10 @@ models:
     # Config indicated by + and applies to all files under models/staging/
     staging:
       +materialized: view
+      +description: "Staging models that clean and validate raw scraped data"
     marts:
       +materialized: table
+      +description: "Production analytical tables for reporting and analysis"
     # Config indicated by + and applies to all files under models/intermediate/
     intermediate:
       +materialized: view

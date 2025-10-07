@@ -5,7 +5,10 @@ sources:
     description: Raw scraped data from horse racing websites
     tables:
       - name: raw_scraped_data
-        description: Raw JSON data from web scraping
+        description: |
+          Raw JSON data from web scraping operations.
+          This table is managed by the Scrapy pipeline and contains all scraped data
+          before any transformations are applied.
         columns:
           - name: id
             description: Primary key
@@ -45,7 +48,10 @@ sources:
               - not_null
 
       - name: crawl_runs
-        description: Metadata about crawl runs
+        description: |
+          Metadata and tracking information for web scraping runs.
+          This table is managed by the Scrapy pipeline and tracks the status
+          and statistics of each crawl operation.
         columns:
           - name: id
             description: UUID primary key

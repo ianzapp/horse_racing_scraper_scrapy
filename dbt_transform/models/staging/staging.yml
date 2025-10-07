@@ -2,7 +2,18 @@ version: 2
 
 models:
   - name: stg_race_entries
-    description: Cleaned and typed race entry data from raw JSON
+    description: |
+      **Cleaned and typed race entry data from raw JSON**
+
+      This staging model processes raw race entry data from the web scraper,
+      cleaning text fields, validating data types, and preparing data for
+      the dimensional model. Each record represents a horse entered in a race.
+
+      **Data Quality:**
+      - Removes newlines and normalizes whitespace
+      - Validates numeric ranges for post positions and speed figures
+      - Converts odds to decimal format for analysis
+      - Filters out records missing critical fields
     columns:
       - name: id
         description: Source record ID
@@ -29,20 +40,23 @@ models:
         description: Starting position
         tests:
           - dbt_utils.accepted_range:
-              min_value: 1
-              max_value: 20
+              arguments:
+                min_value: 1
+                max_value: 20
       - name: speed_figure
         description: HRN speed figure
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 150
+              arguments:
+                min_value: 0
+                max_value: 150
       - name: odds_decimal
         description: Odds in decimal format
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
 
   - name: stg_race_cards
     description: Race card information
@@ -62,13 +76,15 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 1
-              max_value: 15
+              arguments:
+                min_value: 1
+                max_value: 15
       - name: distance_furlongs
         tests:
           - dbt_utils.accepted_range:
-              min_value: 2
-              max_value: 20
+              arguments:
+                min_value: 2
+                max_value: 20
       - name: surface_type
         tests:
           - accepted_values:
@@ -85,20 +101,167 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 1
-              max_value: 20
+              arguments:
+                min_value: 1
+                max_value: 20
       - name: win_payout
         tests:
           - dbt_utils.accepted_range:
-              min_value: 2.0
-              max_value: 1000.0
+              arguments:
+                min_value: 2.0
+                max_value: 1000.0
       - name: place_payout
         tests:
           - dbt_utils.accepted_range:
-              min_value: 2.0
-              max_value: 500.0
+              arguments:
+                min_value: 2.0
+                max_value: 500.0
       - name: show_payout
         tests:
           - dbt_utils.accepted_range:
-              min_value: 2.0
-              max_value: 200.0
+              arguments:
+                min_value: 2.0
+                max_value: 200.0
+
+  - name: stg_news
+    description: |
+      **Cleaned news article data from horse racing websites**
+
+      This staging model processes news articles scraped from various horse racing
+      sources, cleaning text content and extracting metadata for analysis.
+
+      **Data Quality:**
+      - Removes newlines and normalizes whitespace from titles and content
+      - Validates date formats for published dates
+      - Filters out articles without essential content
+    columns:
+      - name: id
+        description: Source record ID
+        tests:
+          - not_null
+          - unique
+      - name: business_key
+        description: Business key for deduplication
+        tests:
+          - not_null
+      - name: title
+        description: Article title
+        tests:
+          - not_null
+      - name: content
+        description: Article content/body
+      - name: author
+        description: Article author
+      - name: category
+        description: News category or section
+      - name: published_date
+        description: Date article was published
+      - name: news_source
+        description: Source publication or website
+      - name: article_url
+        description: URL to the original article
+
+  - name: stg_race_payouts
+    description: |
+      **Cleaned race payout and wagering result data**
+
+      This staging model processes payout information from completed races,
+      including win/place/show payouts and exotic bet results.
+
+      **Data Quality:**
+      - Validates numeric formats for all payout amounts
+      - Ensures essential race identifiers are present
+      - Converts payout strings to proper decimal format
+    columns:
+      - name: id
+        description: Source record ID
+        tests:
+          - not_null
+          - unique
+      - name: business_key
+        description: Business key for deduplication
+        tests:
+          - not_null
+      - name: track_name
+        description: Name of the track
+        tests:
+          - not_null
+      - name: race_date
+        description: Date of the race
+        tests:
+          - not_null
+      - name: race_number
+        description: Race number
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 15
+      - name: win_payout
+        description: Win bet payout amount
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 2.0
+                max_value: 10000.0
+      - name: place_payout
+        description: Place bet payout amount
+      - name: show_payout
+        description: Show bet payout amount
+      - name: exacta_payout
+        description: Exacta bet payout amount
+      - name: trifecta_payout
+        description: Trifecta bet payout amount
+      - name: superfecta_payout
+        description: Superfecta bet payout amount
+
+  - name: stg_hrn_speed_results
+    description: |
+      **HRN speed figures and power rankings data**
+
+      This staging model processes Horse Racing Nation speed figures and
+      power ranking data, including performance metrics and horse details.
+
+      **Data Quality:**
+      - Validates speed figure ranges
+      - Cleans horse and connection names
+      - Handles multiple speed figure field variations
+    columns:
+      - name: id
+        description: Source record ID
+        tests:
+          - not_null
+          - unique
+      - name: business_key
+        description: Business key for deduplication
+        tests:
+          - not_null
+      - name: horse_name
+        description: Name of the horse
+        tests:
+          - not_null
+      - name: hrn_speed_figure
+        description: HRN speed figure rating
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 150
+      - name: power_ranking
+        description: Power ranking position
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 500
+      - name: track_name
+        description: Name of the track
+      - name: race_date
+        description: Date of the race
+      - name: jockey_name
+        description: Jockey name
+      - name: trainer_name
+        description: Trainer name
+      - name: sire_name
+        description: Sire name

@@ -16,7 +16,9 @@ models:
           - unique
 
   - name: dim_horses
-    description: Horse dimension table
+    description: |
+      Enhanced horse dimension table with speed figures and power rankings.
+      Includes current trainer, jockey, and performance metrics.
     columns:
       - name: horse_key
         tests:
@@ -25,6 +27,18 @@ models:
       - name: horse_name
         tests:
           - not_null
+      - name: sire
+        description: Horse's sire name
+      - name: current_speed_figure
+        description: Most recent HRN speed figure
+      - name: current_power_ranking
+        description: Current power ranking position
+      - name: current_trainer
+        description: Current trainer name
+      - name: current_jockey
+        description: Current jockey name
+      - name: career_earnings
+        description: Total career earnings
 
   - name: dim_trainers
     description: Trainer dimension table
@@ -97,3 +111,76 @@ models:
           - relationships:
               to: ref('dim_horses')
               field: horse_key
+
+  - name: fct_race_payouts
+    description: |
+      Race payout fact table containing win/place/show and exotic bet payouts.
+      Links to race and track dimensions for comprehensive payout analysis.
+    columns:
+      - name: payout_key
+        description: Surrogate key for payout record
+        tests:
+          - not_null
+          - unique
+      - name: race_key
+        description: Foreign key to race dimension
+        tests:
+          - relationships:
+              to: ref('fct_races')
+              field: race_key
+      - name: track_key
+        description: Foreign key to track dimension
+        tests:
+          - relationships:
+              to: ref('dim_tracks')
+              field: track_key
+      - name: win_payout
+        description: Win bet payout amount
+      - name: exacta_payout
+        description: Exacta bet payout amount
+      - name: trifecta_payout
+        description: Trifecta bet payout amount
+
+  - name: fct_news
+    description: |
+      News article fact table for horse racing news and analysis.
+      Optionally links to races and tracks when articles are race-specific.
+    columns:
+      - name: news_key
+        description: Surrogate key for news article
+        tests:
+          - not_null
+          - unique
+      - name: title
+        description: Article title
+        tests:
+          - not_null
+      - name: published_date
+        description: Date article was published
+      - name: category
+        description: News category or section
+      - name: news_source
+        description: Source publication
+
+  - name: fct_horse_speed_figures
+    description: |
+      HRN speed figures and power rankings fact table.
+      Contains performance metrics and rankings for horses over time.
+    columns:
+      - name: speed_figure_key
+        description: Surrogate key for speed figure record
+        tests:
+          - not_null
+          - unique
+      - name: horse_key
+        description: Foreign key to horse dimension
+        tests:
+          - relationships:
+              to: ref('dim_horses')
+              field: horse_key
+      - name: hrn_speed_figure
+        description: HRN speed figure rating
+      - name: power_ranking
+        description: Power ranking position
+      - name: career_earnings
+        description: Horse's career earnings
