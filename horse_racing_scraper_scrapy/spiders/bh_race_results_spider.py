@@ -25,9 +25,9 @@ class BhRaceResultsSpider(scrapy.Spider):
         },
     }
 
-    def __init__(self, start_date=None, end_date=None, region="Domestic", 
+    def __init__(self, start_date=None, end_date=None, region="Domestic",
                    state_bred="False", page="1", *args, **kwargs):
-        super(BhRaceResultsSpider, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Set default dates if not provided
         if not start_date:
@@ -68,7 +68,7 @@ class BhRaceResultsSpider(scrapy.Spider):
         h5_text = response.css('main .g-l8 h5::text').get()
         #self.logger.info(response.text[:2000])
         #self.logger.info(f"H5 Text: {h5_text}")
-        
+
         # Extract the last number found
         last_number = re.findall(r'\d+', h5_text)[-1] if h5_text and re.findall(r'\d+', h5_text) else None
         last_page = math.ceil(int(last_number) / 25) if last_number else 1

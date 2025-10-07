@@ -43,12 +43,12 @@ class HrnNewsSpider(scrapy.Spider):
         end_page = getattr(self, 'end_page', None)
         num_pages = getattr(self, 'num_pages', None)
 
-        if start_page == None:
+        if start_page is None:
             start_page = 1
         else:
             start_page = int(start_page)
 
-        if end_page == None and num_pages != None:
+        if end_page is None and num_pages is not None:
             if num_pages.lower() == "max":
                 # Extract ALL track links to discover the date range
                 page_numbers = response.css('ul.pagination li.page-item .page-link::text').re(r'\d+')
@@ -58,14 +58,14 @@ class HrnNewsSpider(scrapy.Spider):
             else:
                 num_pages = int(num_pages)
                 end_page = start_page + num_pages
-        elif end_page != None:
+        elif end_page is not None:
             end_page = int(end_page) + 1
         else:
             end_page = start_page + 1  # Default to 1 pages if nothing is specified
-        
+
         self.logger.info(f"Processing pages from {start_page} to {end_page}")
 
-        for page in range(start_page, end_page): 
+        for page in range(start_page, end_page):
             yield scrapy.Request(f"{response.url}?page={page}", callback=self.parse_news_feed)
 
     def parse_news_feed(self, response):

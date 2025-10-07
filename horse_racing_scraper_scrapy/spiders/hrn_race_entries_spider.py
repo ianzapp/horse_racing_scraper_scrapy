@@ -26,9 +26,9 @@ class HrnRaceEntriesSpider(scrapy.Spider):
     }
 
     def __init__(self, start_date=None, end_date=None, *args, **kwargs):
-        super(HrnRaceEntriesSpider, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-        # Set default dates if not provided, normal date range 
+        # Set default dates if not provided, normal date range
         if not start_date:
             start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
         if not end_date:
@@ -65,7 +65,7 @@ class HrnRaceEntriesSpider(scrapy.Spider):
         track_links = response.css('main table tbody a[href*="/entries-results/"]::attr(href)').getall()
         track_links = [link.split('#')[0] for link in track_links]
         track_links = list(set(track_links))  # Remove duplicates
-        
+
         self.logger.info(f"Found {len(track_links)} track links for date")
         for link in track_links:
             yield scrapy.Request(
@@ -76,17 +76,17 @@ class HrnRaceEntriesSpider(scrapy.Spider):
                 },
                 callback=self.parse_track_entries
             )
-    
+
     def parse_track_entries(self, response):
         self.logger.info(f"Processing track entries page: {response.url}")
-        
+
         text = response.css('main h1::text').get().strip()
         self.track_name = text.split(" Entries")[0]
         self.formatted_date = datetime.strptime(
             re.sub(r'^.*for [A-Za-z]+,\s*', '', text),
             "%B %d, %Y"
         ).strftime("%Y-%m-%d")
-        
+
         # Extract basic track info first
         yield from self.parse_track_info(response)
 
@@ -125,7 +125,7 @@ class HrnRaceEntriesSpider(scrapy.Spider):
             race_wager = self.clean_text(race_card.css('.race-wager-text::text').get())
             after_br_text = race_card.xpath('//ul[@class="report-data"]//p/br/following-sibling::text()').getall()
             race_report = ' '.join(after_br_text).strip()
-            
+
             yield {
                 'type': 'race_card',
                 'track_name': self.track_name,
@@ -160,7 +160,7 @@ class HrnRaceEntriesSpider(scrapy.Spider):
                 trainer = self.clean_text(race_entry.css('td[data-label="Trainer / Jockey"] p:first-child::text').get())
                 jockey = self.clean_text(race_entry.css('td[data-label="Trainer / Jockey"] p:last-child::text').get())
                 odds = self.clean_text(race_entry.css('td[data-label="Morning Line Odds"] p:first-child::text').get())
-                                
+
                 yield {
                     'type': 'race_entry',
                     'track_name': self.track_name,
@@ -175,7 +175,7 @@ class HrnRaceEntriesSpider(scrapy.Spider):
                     'odds': odds,
                     'url': response.url
                 }
-            
+
             race_results = race_card.css('table.table-payouts tbody tr')
             for index, race_result in enumerate(race_results):
                 horse_name = self.clean_text(race_result.css('td:nth-child(1)::text').get())
@@ -194,7 +194,7 @@ class HrnRaceEntriesSpider(scrapy.Spider):
                     'show_payout': show_payout,
                     'url': response.url
                 }
-            
+
             race_payouts = race_card.css('table.table-exotic-payouts tbody tr')
             self.logger.info(f"Found {len(race_payouts)} exotic payouts for race {self.race_number}")
             for index, race_payout in enumerate(race_payouts):
@@ -215,7 +215,7 @@ class HrnRaceEntriesSpider(scrapy.Spider):
                 }
 
 
-    
+
     def parse_hrn_speed_results(self, response):
 
         table = response.css('table.table-speed')
@@ -239,7 +239,7 @@ class HrnRaceEntriesSpider(scrapy.Spider):
                 'age': cells[4],
                 'url': response.url
             }
-        
+
 
     def generate_date_range(self, start_date, end_date):
         """Generate a list of dates between start_date and end_date"""

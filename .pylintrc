@@ -1,0 +1,73 @@
+[MAIN]
+
+# Python version for analysis
+py-version = 3.11
+
+# Files or directories to be skipped
+ignore = migrations,venv,node_modules,.git,__pycache__,dbt_transform
+
+[MESSAGES CONTROL]
+
+# Disable specific warnings that are less critical for this project
+disable =
+    # Documentation related - less critical for initial run
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    # Import related - Scrapy specific
+    import-error,
+    # Line length - allow slightly longer lines for Scrapy
+    line-too-long,
+    # Code duplication - common in spider patterns
+    duplicate-code,
+    # Unused arguments - common in Scrapy callbacks
+    unused-argument,
+    # Consider using f-string - can be addressed later
+    consider-using-f-string,
+    # Too many arguments - common in Scrapy init methods
+    too-many-arguments,
+    too-many-positional-arguments
+
+[FORMAT]
+
+# Maximum number of characters on a single line
+max-line-length = 120
+
+# Allow the body of an if to be on the same line as the test if there is no else
+single-line-if-stmt = no
+
+[DESIGN]
+
+# Maximum number of arguments for function / method
+max-args = 8
+
+# Maximum number of locals for function / method body
+max-locals = 20
+
+# Maximum number of return / yield for function / method body
+max-returns = 6
+
+# Maximum number of branch for function / method body
+max-branches = 15
+
+# Maximum number of statements in function / method body
+max-statements = 60
+
+[VARIABLES]
+
+# Tells whether we should check for unused import in __init__ files
+init-import = no
+
+# List of names which are always excluded from inspection
+# ignored-names = _,__,setUp,tearDown,spider,request,response
+
+[SIMILARITIES]
+
+# Minimum lines number of a similarity
+min-similarity-lines = 6
+
+# Ignore comments when computing similarities
+ignore-comments = yes
+
+# Ignore docstrings when computing similarities
+ignore-docstrings = yes

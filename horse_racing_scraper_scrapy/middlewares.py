@@ -1,7 +1,8 @@
-# Define here the models for your spider middleware
-#
-# See documentation in:
-# https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+"""Spider middleware for Scrapy project.
+
+This module contains custom middleware classes for handling requests and responses,
+including Playwright integration for JavaScript rendering.
+"""
 
 import asyncio
 import random
@@ -10,21 +11,24 @@ from scrapy.http import HtmlResponse
 from scrapy.exceptions import NotConfigured
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 
-# useful for handling different item types with a single interface
-from itemadapter import ItemAdapter
-
 
 class PlaywrightMiddleware:
     """Scrapy downloader middleware that uses Playwright for JavaScript rendering"""
 
     # List of realistic user agents for rotation
     USER_AGENTS = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36',
+        ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+         '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'),
+        ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+         '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'),
+        ('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
+         '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'),
+        ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+         '(KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36'),
+        ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+         '(KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36'),
+        ('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
+         '(KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36'),
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0',
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:90.0) Gecko/20100101 Firefox/90.0',
         'Mozilla/5.0 (X11; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/90.0',
@@ -70,9 +74,12 @@ class PlaywrightMiddleware:
         else:  # chromium (default)
             self.browser = await self.playwright.chromium.launch(headless=self.headless)
 
+        user_agent = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+                     'AppleWebKit/537.36 (KHTML, like Gecko) '
+                     'Chrome/120.0.0.0 Safari/537.36')
         self.browser_context = await self.browser.new_context(
             viewport={'width': 1920, 'height': 1080},
-            user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            user_agent=user_agent
         )
 
         spider.logger.info(f"Playwright {self.browser_type} browser started")
@@ -114,7 +121,7 @@ class PlaywrightMiddleware:
 
             # Navigate to the page
             spider.logger.info(f"Loading page: {request.url}")
-            response = await page.goto(request.url, timeout=self.timeout, wait_until='domcontentloaded')
+            await page.goto(request.url, timeout=self.timeout, wait_until='domcontentloaded')
 
             # Wait for specific elements if specified
             wait_for = request.meta.get('playwright_wait_for')

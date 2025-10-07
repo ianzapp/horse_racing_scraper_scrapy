@@ -42,9 +42,9 @@ class PowerRankingsSpider(scrapy.Spider):
             end_page = max(int(num) for num in page_numbers) + 1
             self.logger.info(f"Found {end_page} total links on page")
         else:
-            end_page = 2  # Default to just one page if no pagination found 
+            end_page = 2  # Default to just one page if no pagination found
         self.logger.info(f"Scraping pages from {start_page} to {end_page}")
-        for page in range(start_page, end_page): 
+        for page in range(start_page, end_page):
             yield scrapy.Request(f"{response.url}?page={page}", callback=self.parse_power_rankings_page)
 
     def parse_power_rankings_page(self, response):
@@ -71,9 +71,9 @@ class PowerRankingsSpider(scrapy.Spider):
             trainer = row.css('td:nth-child(5) a:first-child::text').get()
             jockey = row.css('td:nth-child(5) a:last-child::text').get()
 
-            self.logger.info(f"Extracted ranking - Rank: {rank}, Horse: {horse_name}, Sire: {sire}, Trainer: {trainer}, Jockey: {jockey}")  
+            self.logger.info(f"Extracted ranking - Rank: {rank}, Horse: {horse_name}, Sire: {sire}, Trainer: {trainer}, Jockey: {jockey}")
 
-            if rank != None and rank != "" and len(rank) != 0 and rating != None and rating != "" and len(rating):
+            if rank is not None and rank != "" and len(rank) != 0 and rating is not None and rating != "" and len(rating):
                 yield {
                     'type:': 'power_ranking',
                     'rank': rank.strip() if rank else None,

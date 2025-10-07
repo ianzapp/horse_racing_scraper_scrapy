@@ -27,17 +27,17 @@ class EnhancedRawJSONPipeline:
         #self.engine = create_engine('postgresql://user:pass@localhost/db')
         self.engine = create_engine('postgresql://postgres:0UcZXEAJMouLadi0@db.itzwxbopifncdbrhzlma.supabase.co:5432/postgres')
         self.crawl_run_id = None
-        
+
     def open_spider(self, spider):
         self.crawl_run_id = str(uuid.uuid4())
         spider.crawl_run_id = self.crawl_run_id
-        
+
         # Create crawl run record
         query = text("""
             INSERT INTO crawl_runs (id, spider_name, source_domain, configuration)
             VALUES (:id, :spider, :domain, :config)
         """)
-        
+
         def serialize_value(value):
             try:
                 json.dumps(value)
@@ -50,7 +50,7 @@ class EnhancedRawJSONPipeline:
             'start_urls': getattr(spider, 'start_urls', []),
             'custom_settings': getattr(spider, 'custom_settings', {})
         }
-        
+
         with self.engine.connect() as conn:
             conn.execute(query, {
                 'id': self.crawl_run_id,
@@ -59,29 +59,29 @@ class EnhancedRawJSONPipeline:
                 'config': json.dumps(config)
             })
             conn.commit()
-            
+
     def process_item(self, item, spider):
         try:
             item_dict = dict(item)
-            
+
             # Generate content hash for deduplication
             content_str = json.dumps(item_dict, sort_keys=True)
             data_hash = hashlib.sha256(content_str.encode()).hexdigest()
-            
+
             # Check for duplicates
             if self.is_duplicate(data_hash):
                 spider.logger.info(f"Duplicate item found: {item_dict.get('url', 'no url')}")
                 return item
-            
+
             # Determine item type
             item_type = self.determine_item_type(item_dict)
-            
+
             query = text("""
                 INSERT INTO raw_scraped_data
                 (spider_name, source_url, raw_data, crawl_run_id, data_hash, item_type)
                 VALUES (:spider, :url, CAST(:data AS jsonb), :run_id, :hash, :type)
             """)
-            
+
             with self.engine.connect() as conn:
                 conn.execute(query, {
                     'spider': spider.name,
@@ -92,28 +92,28 @@ class EnhancedRawJSONPipeline:
                     'type': item_type
                 })
                 conn.commit()
-                
+
             # Update crawl run stats
             self.update_crawl_stats('total_items')
-            
+
         except Exception as e:
             spider.logger.error(f"Failed to store item: {e}")
             self.update_crawl_stats('failed_items')
-            
+
         return item
-        
+
     def close_spider(self, spider):
         # Finalize crawl run
         query = text("""
-            UPDATE crawl_runs 
+            UPDATE crawl_runs
             SET status = 'completed', finished_at = CURRENT_TIMESTAMP
             WHERE id = :id
         """)
-        
+
         with self.engine.connect() as conn:
             conn.execute(query, {'id': self.crawl_run_id})
             conn.commit()
-            
+
     def is_duplicate(self, data_hash):
         query = text("SELECT 1 FROM raw_scraped_data WHERE data_hash = :hash LIMIT 1")
         with self.engine.connect() as conn:
@@ -121,8 +121,8 @@ class EnhancedRawJSONPipeline:
             return result is not None
 
     def determine_item_type(self, item_dict):
-      return item_dict.get('type', 'general')   
-    
+      return item_dict.get('type', 'general')
+
     '''
     def determine_item_type(self, item_dict):
         # Simple logic to categorize items
@@ -135,14 +135,14 @@ class EnhancedRawJSONPipeline:
         else:
             return 'general'
     '''
-    
+
     def update_crawl_stats(self, field):
         query = text(f"""
-            UPDATE crawl_runs 
+            UPDATE crawl_runs
             SET {field} = {field} + 1, updated_at = CURRENT_TIMESTAMP
             WHERE id = :id
         """)
-        
+
         with self.engine.connect() as conn:
             conn.execute(query, {'id': self.crawl_run_id})
             conn.commit()
