@@ -1,0 +1,188 @@
+version: 2
+
+models:
+  - name: fct_news_with_sentiment
+    description: "Enhanced news fact table with SQL-based sentiment analysis using keyword matching and racing domain knowledge"
+    columns:
+      # Original columns from fct_news
+      - name: news_key
+        description: "Unique identifier for news article"
+        tests:
+          - unique
+          - not_null
+
+      - name: related_race_key
+        description: "Foreign key to related race if applicable"
+
+      - name: track_key
+        description: "Foreign key to track dimension"
+
+      - name: title
+        description: "Article title"
+        tests:
+          - not_null
+
+      - name: content
+        description: "Full article content"
+
+      - name: summary
+        description: "Article summary if available"
+
+      - name: author
+        description: "Article author"
+
+      - name: category
+        description: "Article category"
+
+      - name: news_source
+        description: "Source publication"
+
+      - name: published_date
+        description: "Date article was published"
+
+      - name: related_race_date
+        description: "Date of related race if applicable"
+
+      - name: article_url
+        description: "URL to original article"
+
+      - name: image_url
+        description: "URL to article image"
+
+      - name: tags
+        description: "Article tags"
+
+      - name: related_track
+        description: "Name of related track"
+
+      - name: business_key
+        description: "Business key for deduplication"
+
+      - name: source_url
+        description: "Source URL from scraper"
+
+      - name: crawl_run_id
+        description: "ID of the crawl run that collected this data"
+
+      - name: created_at
+        description: "Timestamp when record was created"
+
+      # Sentiment analysis columns
+      - name: basic_sentiment_score
+        description: "Basic sentiment score using general positive/negative indicators (-1 to 1)"
+
+      - name: basic_sentiment_label
+        description: "Basic sentiment classification (positive, negative, neutral)"
+
+      - name: racing_sentiment_score
+        description: "Domain-specific horse racing sentiment score (-1 to 1)"
+
+      - name: racing_sentiment_label
+        description: "Racing sentiment classification (positive, negative, neutral)"
+
+      - name: sentiment_confidence
+        description: "Confidence in sentiment analysis based on indicator count (0 to 1)"
+
+      # Text quality metrics
+      - name: word_count
+        description: "Number of words in article content"
+
+      - name: char_count
+        description: "Number of characters in article content"
+
+      - name: sentence_count
+        description: "Number of sentences in article content"
+
+      - name: avg_word_length
+        description: "Average word length in article"
+
+      - name: text_quality_score
+        description: "Text quality score (0 to 1)"
+
+      # Overall sentiment
+      - name: overall_sentiment_score
+        description: "Weighted average sentiment score from all methods"
+
+      - name: overall_sentiment_label
+        description: "Overall sentiment classification (positive, negative, neutral)"
+
+      - name: sentiment_processed_at
+        description: "Timestamp when sentiment analysis was performed"
+
+      # Entity extraction indicators
+      - name: has_trainer_mention
+        description: "Whether article mentions trainers (1/0)"
+
+      - name: has_jockey_mention
+        description: "Whether article mentions jockeys (1/0)"
+
+      - name: has_major_track_mention
+        description: "Whether article mentions major tracks (1/0)"
+
+      - name: racing_terms_count
+        description: "Count of racing terminology in article"
+
+      - name: is_quality_content
+        description: "Whether content meets quality thresholds for analysis"
+
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "word_count >= 0"
+          name: "word_count_non_negative"
+
+      - dbt_utils.expression_is_true:
+          expression: "basic_sentiment_score >= -1 AND basic_sentiment_score <= 1"
+          name: "basic_sentiment_valid_range"
+
+      - dbt_utils.expression_is_true:
+          expression: "racing_sentiment_score >= -1 AND racing_sentiment_score <= 1"
+          name: "racing_sentiment_valid_range"
+
+      - dbt_utils.expression_is_true:
+          expression: "text_quality_score >= 0 AND text_quality_score <= 1"
+          name: "text_quality_score_valid_range"
+
+  - name: fct_news_entities
+    description: "Enhanced news with entity extraction using SQL pattern matching"
+    columns:
+      - name: news_key
+        description: "Unique identifier for news article"
+        tests:
+          - unique
+          - not_null
+
+      - name: extracted_track_name
+        description: "Extracted track name from content"
+
+      - name: extracted_race_type
+        description: "Extracted race type (Grade 1, Stakes, etc.)"
+
+      - name: extracted_stakes_race
+        description: "Extracted stakes race name"
+
+      - name: extracted_distance
+        description: "Extracted race distance"
+
+      - name: extracted_surface
+        description: "Extracted racing surface"
+
+      - name: total_entities_count
+        description: "Total count of extracted entities"
+
+      - name: entity_density
+        description: "Entities per 100 words"
+
+      - name: racing_relevance_score
+        description: "Score indicating racing relevance (0-1)"
+
+      - name: racing_terminology_count
+        description: "Count of racing terms in article"
+
+      - name: entities_processed_at
+        description: "Timestamp when entity extraction was performed"
+
+      - name: enhanced_track_name
+        description: "Best available track name (spider or extracted)"
+
+      - name: enhanced_track_key
+        description: "Track key using enhanced track logic"

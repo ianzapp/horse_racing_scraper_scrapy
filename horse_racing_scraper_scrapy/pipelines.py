@@ -98,7 +98,7 @@ class EnhancedRawJSONPipeline:
 
         except Exception as e:
             spider.logger.error(f"Failed to store item: {e}")
-            self.update_crawl_stats('failed_items')
+            # Note: failed_items tracking removed
 
         return item
 

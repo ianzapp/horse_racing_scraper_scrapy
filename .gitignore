@@ -159,3 +159,9 @@ Thumbs.db
 
 # Output files
 output/
+
+# dbt debug and temporary files
+dbt_transform/temp_debug_files/
+dbt_transform/target/
+dbt_transform/logs/
+dbt_transform/dbt_packages/

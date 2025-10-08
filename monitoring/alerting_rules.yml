@@ -1,0 +1,181 @@
+groups:
+  - name: scrapy_alerts
+    rules:
+      - alert: ScrapySpiderDown
+        expr: up{job="scrapy-app"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Scrapy application is down"
+          description: "Scrapy application has been down for more than 5 minutes."
+
+      - alert: ScrapyHighErrorRate
+        expr: rate(scrapy_spider_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in Scrapy spiders"
+          description: "Spider {{ $labels.spider }} has error rate > 10% for 2 minutes."
+
+      - alert: ScrapyNoDataCollected
+        expr: increase(scrapy_items_scraped_total[1h]) == 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "No data collected by Scrapy"
+          description: "No items have been scraped in the last hour."
+
+      - alert: ScrapySlowResponseTime
+        expr: rate(scrapy_response_time_seconds_sum[5m]) / rate(scrapy_response_time_seconds_count[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow response times in Scrapy"
+          description: "Average response time is {{ $value }}s for spider {{ $labels.spider }}"
+
+  - name: database_alerts
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database is unreachable for more than 2 minutes."
+
+      - alert: PostgreSQLHighConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connection usage high"
+          description: "PostgreSQL connection usage is {{ $value }}%"
+
+      - alert: PostgreSQLSlowQueries
+        expr: rate(pg_stat_database_tup_fetched[5m]) / rate(pg_stat_database_tup_returned[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL queries are slow"
+          description: "PostgreSQL query efficiency is low: {{ $value }}"
+
+      - alert: PostgreSQLReplicationLag
+        expr: pg_replication_lag > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL replication lag high"
+          description: "Replication lag is {{ $value }} seconds"
+
+  - name: system_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: 100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}%"
+
+      - alert: LowDiskSpace
+        expr: 100 - (100 * (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value }}%"
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service is down"
+          description: "{{ $labels.job }} service is down for more than 2 minutes."
+
+  - name: business_alerts
+    rules:
+      - alert: NoDataToday
+        expr: absent(scrapy_items_scraped_total) or increase(scrapy_items_scraped_total[24h]) == 0
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No data collected today"
+          description: "No horse racing data has been collected in the last 24 hours."
+
+      - alert: DataQualityLow
+        expr: (scrapy_data_quality_score < 0.8) and (scrapy_data_quality_score > 0)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Data quality score is low"
+          description: "Data quality score is {{ $value }}, below 80% threshold."
+
+      - alert: MissingTracks
+        expr: scrapy_unique_tracks_today < 5
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Few tracks covered today"
+          description: "Only {{ $value }} tracks have been scraped today."
+
+      - alert: StaleData
+        expr: time() - scrapy_last_successful_scrape > 7200
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Data is becoming stale"
+          description: "Last successful scrape was {{ $value }} seconds ago."
+
+  - name: redis_alerts
+    rules:
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis server is unreachable for more than 2 minutes."
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is {{ $value }}%"
+
+      - alert: RedisConnectionsHigh
+        expr: redis_connected_clients > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of Redis connections"
+          description: "Redis has {{ $value }} active connections"

@@ -50,6 +50,7 @@ DOWNLOAD_DELAY = 1
 DOWNLOADER_MIDDLEWARES = {
     "horse_racing_scraper_scrapy.middlewares.PlaywrightMiddleware": 585,
     "horse_racing_scraper_scrapy.middlewares.HorseRacingScraperScrapyDownloaderMiddleware": 543,
+    "horse_racing_scraper_scrapy.prometheus_middleware.PrometheusMiddleware": 100,
 }
 
 # Playwright settings
@@ -93,3 +94,7 @@ PLAYWRIGHT_TIMEOUT = 30000
 
 # Set settings whose default value is deprecated to a future-proof value
 FEED_EXPORT_ENCODING = "utf-8"
+
+# Prometheus monitoring settings
+PROMETHEUS_ENABLED = True
+PROMETHEUS_PORT = 8000

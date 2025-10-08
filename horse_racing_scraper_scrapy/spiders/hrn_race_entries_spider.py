@@ -104,7 +104,7 @@ class HrnRaceEntriesSpider(scrapy.Spider):
         yield {
             'type': 'track_info',
             'track_name': self.track_name,
-            'race_date': self.formatted_date,
+            #'race_date': self.formatted_date,
             'track_location': track_location,
             'track_description': track_description,
             'track_website': track_website,

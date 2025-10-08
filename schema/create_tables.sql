@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS raw_scraped_data (
     crawl_run_id UUID NOT NULL,
     data_hash VARCHAR(64) NOT NULL UNIQUE,
     item_type VARCHAR(50) NOT NULL CHECK (item_type IN ('race_entry', 'track_info', 'race_card', 'race_result', 'race_payout', 'news', 'hrn_speed_result')),
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Indexes for performance
@@ -27,7 +28,6 @@ CREATE TABLE IF NOT EXISTS crawl_runs (
     configuration JSONB,
     status VARCHAR(50) DEFAULT 'running' CHECK (status IN ('running', 'completed', 'failed')),
     total_items INTEGER DEFAULT 0,
-    failed_items INTEGER DEFAULT 0,
     started_at TIMESTAMP DEFAULT NOW(),
     finished_at TIMESTAMP,
     updated_at TIMESTAMP DEFAULT NOW()

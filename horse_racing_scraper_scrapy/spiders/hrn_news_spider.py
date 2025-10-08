@@ -63,7 +63,7 @@ class HrnNewsSpider(scrapy.Spider):
 
         self.logger.info(f"Processing pages from {start_page} to {end_page}")
 
-        for page in range(start_page, end_page):
+        for page in range(start_page, end_page): # type: ignore
             yield scrapy.Request(f"{response.url}?page={page}", callback=self.parse_news_feed)
 
     def parse_news_feed(self, response):
@@ -85,12 +85,6 @@ class HrnNewsSpider(scrapy.Spider):
         """Parse individual article pages to extract content"""
         self.logger.info(f"Processing article page: {response.url}")
 
-        #author = (response.css('span.byline::text').get() or
-        #         response.css('.author::text').get() or
-        #         response.css('span.author::text').get() or
-        #         response.css('[class*="author"]::text').get() or
-        #         response.css('span:contains("staff")::text').get()).strip()
-
         title = response.css('h1::text').get()
         author = response.css('span.byline::text').get()
         pub_date = response.css('time::text').get()
@@ -110,6 +104,7 @@ class HrnNewsSpider(scrapy.Spider):
                 'author': author,
                 'publication_date': pub_date,
                 'content': content,
+                'news_source': 'Horse Racing Nation',
                 'url': response.url
             }
         else:

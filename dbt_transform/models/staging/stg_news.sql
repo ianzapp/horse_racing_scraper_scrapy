@@ -18,33 +18,23 @@ WITH cleaned_news AS (
         TRIM(raw_data->>'author') as author,
         TRIM(raw_data->>'category') as category,
 
-        -- Parse date fields
+        -- Parse date fields (extract from publication_date field)
         CASE
-            WHEN raw_data->>'published_date' IS NOT NULL
-            AND raw_data->>'published_date' != ''
-            THEN CAST(raw_data->>'published_date' AS DATE)
+            WHEN raw_data->>'publication_date' IS NOT NULL
+            AND raw_data->>'publication_date' != ''
+            THEN CAST(raw_data->>'publication_date' AS DATE)
             ELSE NULL
         END as published_date,
 
         -- Extract metadata
         TRIM(raw_data->>'summary') as summary,
-        TRIM(raw_data->>'source') as news_source,
+        COALESCE(
+            TRIM(raw_data->>'news_source'),
+            TRIM(raw_data->>'source')
+        ) as news_source,
 
         -- Tags/keywords if available
-        raw_data->>'tags' as tags,
-
-        -- Related race information if available
-        TRIM(raw_data->>'track_name') as related_track,
-        CASE
-            WHEN raw_data->>'race_date' IS NOT NULL
-            AND raw_data->>'race_date' != ''
-            THEN CAST(raw_data->>'race_date' AS DATE)
-            ELSE NULL
-        END as related_race_date,
-
-        -- URL and image metadata
-        TRIM(raw_data->>'article_url') as article_url,
-        TRIM(raw_data->>'image_url') as image_url
+        raw_data->>'tags' as tags
 
     FROM {{ source('public', 'raw_scraped_data') }}
     WHERE item_type = 'news'
