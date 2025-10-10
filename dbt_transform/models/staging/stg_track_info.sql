@@ -10,15 +10,15 @@ with source_data as (
     select
         id,
         spider_name,
-        source_url,
         raw_data,
+        source_url,
         data_hash,
-        created_at
+        created_at as scraped_dt
     from {{ source('public', 'raw_scraped_data') }}
     where item_type = 'track_info'
 
     {% if is_incremental() %}
-        and created_at > (select max(created_at) from {{ this }})
+        and created_at > (select max(scraped_dt) from {{ this }})
     {% endif %}
 ),
 
@@ -26,12 +26,10 @@ parsed_data as (
     select
         id,
         spider_name,
-        source_url,
-        data_hash,
-        created_at,
 
         -- Extract and clean track information
         trim(raw_data->>'track_name') as track_name,
+        trim(raw_data->>'track_abbreviation') as track_abbreviation,
         trim(raw_data->>'track_description') as track_description,
         raw_data->>'track_website' as track_website,
 
@@ -199,20 +197,36 @@ parsed_data as (
             when lower(raw_data->>'track_location') like '%county,%' then
                 trim(split_part(raw_data->>'track_location', ',', 1))
             else trim(raw_data->>'track_location')
-        end as track_city
+        end as track_city,
+
+        -- Metadata (at end)
+        source_url,
+        data_hash,
+        scraped_dt
 
     from source_data
 ),
 
 cleaned_data as (
     select
-        *,
+        -- Business attributes
+        id,
+        spider_name,
+        track_name,
+        track_abbreviation,
+        track_description,
+        track_website,
+        track_country,
+        track_state,
+        track_city,
+
         -- Data quality flags
         case when track_name is null or track_name = '' then true else false end as missing_track_name,
 
-        -- Track activity tracking
-        created_at::date as last_seen_date,
-        true as is_active  -- Default to active, can be manually overridden in dim_tracks
+        -- Metadata (at end)
+        source_url,
+        data_hash,
+        scraped_dt
 
     from parsed_data
 )

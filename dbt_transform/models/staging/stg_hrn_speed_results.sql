@@ -1,16 +1,31 @@
-{{ config(materialized='view') }}
+{{
+  config(
+    materialized='incremental',
+    unique_key='id',
+    on_schema_change='fail'
+  )
+}}
 
-WITH cleaned_speed_results AS (
+with source_data as (
+    select
+        id,
+        spider_name,
+        raw_data,
+        source_url,
+        data_hash,
+        created_at as scraped_dt
+    from {{ source('public', 'raw_scraped_data') }}
+    where item_type = 'hrn_speed_result'
+
+    {% if is_incremental() %}
+        and created_at > (select max(scraped_dt) from {{ this }})
+    {% endif %}
+),
+
+cleaned_speed_results AS (
     SELECT
         id,
         spider_name,
-        source_url,
-        crawl_run_id,
-        data_hash,
-        created_at,
-
-        -- Create business key for deduplication
-        {{ dbt_utils.generate_surrogate_key(['source_url', 'data_hash']) }} as business_key,
 
         -- Extract horse and race information
         TRIM(REPLACE(REPLACE(raw_data->>'horse_name', E'\n', ' '), E'\r', '')) as horse_name,
@@ -99,11 +114,14 @@ WITH cleaned_speed_results AS (
 
         -- Record details
         TRIM(raw_data->>'record') as race_record,
-        TRIM(raw_data->>'last_race_date') as last_race_date_raw
+        TRIM(raw_data->>'last_race_date') as last_race_date_raw,
 
-    FROM {{ source('public', 'raw_scraped_data') }}
-    WHERE item_type = 'hrn_speed_result'
-        AND raw_data IS NOT NULL
+        -- Metadata (at end)
+        source_url,
+        data_hash,
+        scraped_dt
+
+    FROM source_data
 )
 
 SELECT * FROM cleaned_speed_results

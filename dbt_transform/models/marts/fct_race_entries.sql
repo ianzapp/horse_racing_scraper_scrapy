@@ -30,6 +30,8 @@ entry_details as (
         re.*,
         r.race_key,
         h.horse_key,
+        h.current_owner_key as owner_key,
+        h.current_owner as owner_name,
         t.trainer_key,
         j.jockey_key
     from race_entries re
@@ -44,23 +46,35 @@ entry_details as (
 final as (
     select
         {{ dbt_utils.generate_surrogate_key(['track_name', 'race_date', 'race_number', 'horse_name']) }} as entry_key,
+
+        -- Foreign keys
         race_key,
         horse_key,
         trainer_key,
         jockey_key,
+        owner_key,
+
+        -- Natural keys / Frequently filtered dimensions
         track_name,
         race_date,
         race_number,
         horse_name,
-        post_position,
-        speed_figure,
-        sire,
+
+        -- Human-readable names (for display)
         trainer,
         jockey,
+        owner_name,
+
+        -- Measures (the actual facts)
+        post_position,
+        speed_figure,
         odds,
         odds_decimal,
-        source_url,
-        created_at as scraped_at
+
+        -- Metadata / Lineage
+        id as staging_id,
+        data_hash,
+        scraped_dt
     from entry_details
 )
 

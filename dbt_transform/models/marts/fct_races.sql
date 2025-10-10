@@ -37,8 +37,11 @@ final as (
         purse_amount,
         race_wager,
         race_report,
-        source_url,
-        created_at as scraped_at
+
+        -- Metadata / Lineage
+        id as staging_id,
+        data_hash,
+        scraped_dt
     from race_details
 )
 

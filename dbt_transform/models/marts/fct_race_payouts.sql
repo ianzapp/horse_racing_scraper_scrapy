@@ -10,7 +10,9 @@ with payout_data as (
         p.*,
         t.track_key,
         -- Create composite race key from track and race details
-        {{ dbt_utils.generate_surrogate_key(['t.track_key', 'p.race_date', 'p.race_number']) }} as race_key
+        {{ dbt_utils.generate_surrogate_key(['t.track_key', 'p.race_date', 'p.race_number']) }} as race_key,
+        -- Create business key
+        {{ dbt_utils.generate_surrogate_key(['p.source_url', 'p.data_hash']) }} as business_key
     from {{ ref('stg_race_payouts') }} p
     left join {{ ref('dim_tracks') }} t
         on p.track_name = t.track_name
@@ -52,11 +54,10 @@ final as (
         total_pool,
         win_pool,
 
-        -- Metadata
-        business_key,
-        source_url,
-        crawl_run_id,
-        created_at
+        -- Metadata / Lineage
+        id as staging_id,
+        data_hash,
+        scraped_dt
 
     from payout_data
 )

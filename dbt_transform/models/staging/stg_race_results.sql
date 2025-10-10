@@ -10,15 +10,15 @@ with source_data as (
     select
         id,
         spider_name,
-        source_url,
         raw_data,
+        source_url,
         data_hash,
-        created_at
+        created_at as scraped_dt
     from {{ source('public', 'raw_scraped_data') }}
     where item_type = 'race_result'
 
     {% if is_incremental() %}
-        and created_at > (select max(created_at) from {{ this }})
+        and created_at > (select max(scraped_dt) from {{ this }})
     {% endif %}
 ),
 
@@ -26,9 +26,6 @@ parsed_data as (
     select
         id,
         spider_name,
-        source_url,
-        data_hash,
-        created_at,
 
         -- Basic race information
         trim(raw_data->>'track_name') as track_name,
@@ -65,16 +62,32 @@ parsed_data as (
                 and raw_data->>'show_payout' != '-'
             then regexp_replace(raw_data->>'show_payout', '[^0-9.]', '', 'g')::numeric
             else null
-        end as show_payout
+        end as show_payout,
+
+        -- Metadata (at end)
+        source_url,
+        data_hash,
+        scraped_dt
 
     from source_data
 ),
 
 cleaned_data as (
     select
-        *,
-        -- Business key
-        concat(track_name, '|', race_date, '|', race_number, '|', horse_name) as business_key,
+        -- Business attributes
+        id,
+        spider_name,
+        track_name,
+        race_date,
+        race_number,
+        horse_name,
+        finish_position,
+        win_payout_raw,
+        place_payout_raw,
+        show_payout_raw,
+        win_payout,
+        place_payout,
+        show_payout,
 
         -- Derived fields
         case when finish_position = 1 then true else false end as is_winner,
@@ -84,7 +97,12 @@ cleaned_data as (
         case when horse_name is null or horse_name = '' then true else false end as missing_horse_name,
         case when track_name is null or track_name = '' then true else false end as missing_track_name,
         case when race_date is null then true else false end as missing_race_date,
-        case when finish_position is null then true else false end as missing_finish_position
+        case when finish_position is null then true else false end as missing_finish_position,
+
+        -- Metadata (at end)
+        source_url,
+        data_hash,
+        scraped_dt
 
     from parsed_data
 )

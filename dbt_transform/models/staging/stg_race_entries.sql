@@ -10,16 +10,16 @@ with source_data as (
     select
         id,
         spider_name,
-        source_url,
         raw_data,
+        source_url,
         data_hash,
-        created_at
+        created_at as scraped_dt
     from {{ source('public', 'raw_scraped_data') }}
     where item_type = 'race_entry'
 
     {% if is_incremental() %}
         -- Only process new records since last run
-        and created_at > (select max(created_at) from {{ this }})
+        and created_at > (select max(scraped_dt) from {{ this }})
     {% endif %}
 ),
 
@@ -27,9 +27,6 @@ parsed_data as (
     select
         id,
         spider_name,
-        source_url,
-        data_hash,
-        created_at,
 
         -- Extract fields from JSON with proper typing and cleaning
         trim(raw_data->>'track_name') as track_name,
@@ -66,21 +63,42 @@ parsed_data as (
             when raw_data->>'odds' ~ '^[0-9]+\.[0-9]+$' then
                 (raw_data->>'odds')::numeric
             else null
-        end as odds_decimal
+        end as odds_decimal,
+
+        -- Metadata (at end)
+        source_url,
+        data_hash,
+        scraped_dt
 
     from source_data
 ),
 
 cleaned_data as (
     select
-        *,
-        -- Create a business key for deduplication
-        concat(track_name, '|', race_date, '|', race_number, '|', horse_name) as business_key,
+        -- Business attributes
+        id,
+        spider_name,
+        track_name,
+        race_date,
+        race_number,
+        horse_name,
+        post_position,
+        speed_figure,
+        sire,
+        trainer,
+        jockey,
+        odds,
+        odds_decimal,
 
         -- Data quality flags
         case when horse_name is null or horse_name = '' then true else false end as missing_horse_name,
         case when track_name is null or track_name = '' then true else false end as missing_track_name,
-        case when race_date is null then true else false end as missing_race_date
+        case when race_date is null then true else false end as missing_race_date,
+
+        -- Metadata (at end)
+        source_url,
+        data_hash,
+        scraped_dt
 
     from parsed_data
 )

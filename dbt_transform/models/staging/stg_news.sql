@@ -1,16 +1,31 @@
-{{ config(materialized='view') }}
+{{
+  config(
+    materialized='incremental',
+    unique_key='id',
+    on_schema_change='fail'
+  )
+}}
 
-WITH cleaned_news AS (
+with source_data as (
+    select
+        id,
+        spider_name,
+        raw_data,
+        source_url,
+        data_hash,
+        created_at as scraped_dt
+    from {{ source('public', 'raw_scraped_data') }}
+    where item_type = 'news'
+
+    {% if is_incremental() %}
+        and created_at > (select max(scraped_dt) from {{ this }})
+    {% endif %}
+),
+
+cleaned_news AS (
     SELECT
         id,
         spider_name,
-        source_url,
-        crawl_run_id,
-        data_hash,
-        created_at,
-
-        -- Create business key for deduplication
-        {{ dbt_utils.generate_surrogate_key(['source_url', 'data_hash']) }} as business_key,
 
         -- Extract and clean news fields from JSON
         TRIM(REPLACE(REPLACE(raw_data->>'title', E'\n', ' '), E'\r', '')) as title,
@@ -34,11 +49,14 @@ WITH cleaned_news AS (
         ) as news_source,
 
         -- Tags/keywords if available
-        raw_data->>'tags' as tags
+        raw_data->>'tags' as tags,
 
-    FROM {{ source('public', 'raw_scraped_data') }}
-    WHERE item_type = 'news'
-        AND raw_data IS NOT NULL
+        -- Metadata (at end)
+        source_url,
+        data_hash,
+        scraped_dt
+
+    FROM source_data
 )
 
 SELECT * FROM cleaned_news

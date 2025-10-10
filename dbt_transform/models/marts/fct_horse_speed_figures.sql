@@ -9,6 +9,7 @@ with speed_data as (
     select
         s.*,
         h.horse_key,
+        h.current_owner_key as owner_key,
         t.track_key,
         tr.trainer_key,
         j.jockey_key,
@@ -17,7 +18,9 @@ with speed_data as (
             when s.track_name is not null and s.race_date is not null and s.race_number is not null
             then {{ dbt_utils.generate_surrogate_key(['t.track_key', 's.race_date', 's.race_number']) }}
             else null
-        end as race_key
+        end as race_key,
+        -- Create business key
+        {{ dbt_utils.generate_surrogate_key(['s.source_url', 's.data_hash']) }} as business_key
     from {{ ref('stg_hrn_speed_results') }} s
     left join {{ ref('dim_horses') }} h
         on s.horse_name = h.horse_name
@@ -32,50 +35,43 @@ with speed_data as (
 final as (
     select
         {{ dbt_utils.generate_surrogate_key(['business_key']) }} as speed_figure_key,
+
+        -- Foreign keys
         horse_key,
         track_key,
+        race_key,
         trainer_key,
         jockey_key,
-        race_key,
+        owner_key,
 
-        -- Horse identification
+        -- Natural keys / Frequently filtered dimensions
         horse_name,
-        sire_name,
-
-        -- Performance metrics
-        hrn_speed_figure,
-        power_ranking,
-        last_race_speed,
-        avg_speed_last_3_races,
-
-        -- Race context
         track_name,
         race_date,
         race_number,
-        surface_type,
-        distance,
-        race_class,
 
-        -- Horse details
-        horse_age,
-        horse_sex,
-        career_earnings,
-        race_record,
-        last_race_date_raw,
-
-        -- Connection information
+        -- Human-readable names (for display)
         trainer_name,
         jockey_name,
         owner_name,
 
-        -- Ranking metrics
+        -- Performance metrics (the actual facts)
+        hrn_speed_figure,
+        power_ranking,
+        last_race_speed,
+        avg_speed_last_3_races,
         ranking_change,
 
-        -- Metadata
-        business_key,
-        source_url,
-        crawl_run_id,
-        created_at
+        -- Race context (contextual to the measurement)
+        surface_type,
+        distance,
+        race_class,
+        last_race_date_raw,
+
+        -- Metadata / Lineage
+        id as staging_id,
+        data_hash,
+        scraped_dt
 
     from speed_data
     where horse_name is not null  -- Only include records with horse data

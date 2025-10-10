@@ -44,8 +44,11 @@ final as (
         win_payout,
         place_payout,
         show_payout,
-        source_url,
-        created_at as scraped_at
+
+        -- Metadata / Lineage
+        id as staging_id,
+        data_hash,
+        scraped_dt
     from result_details
 )
 

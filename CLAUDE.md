@@ -312,6 +312,107 @@ dbt docs generate --profiles-dir .
 dbt docs serve --profiles-dir .
 ```
 
+## DBT Column Ordering Standards
+
+### Universal Temporal Column Rule
+**ALL dimension and fact tables MUST end with temporal columns in this exact order:**
+
+```sql
+-- Temporal columns (standardized at end - ALWAYS LAST)
+update_dt,          -- or scraped_at for fact tables (timestamp of last update)
+last_seen_dt,       -- date last observed (dimensions only)
+is_active,          -- boolean calculated field (dimensions only)
+create_dt           -- record creation timestamp
+```
+
+**Exception:** Only override this ordering if explicitly requested by the user.
+
+### Standard Column Ordering by Section
+
+1. **Surrogate/Primary keys** - `dimension_key` or `fact_key`
+2. **Natural/Business keys** - `track_name`, `race_date`, `horse_name`, etc.
+3. **Foreign keys** - `track_key`, `horse_key`, `trainer_key`, etc.
+4. **Descriptive attributes** - All business/domain-specific attributes
+5. **Measures/Metrics** - Numeric values being analyzed (fact tables)
+6. **Metadata** - `source_url`, `data_hash`, `business_key`
+7. **Temporal columns** - ALWAYS LAST (see rule above)
+
+### Example Dimension Table Structure
+```sql
+SELECT
+    -- 1. Surrogate key
+    horse_key,
+    horse_name,
+
+    -- 2. Foreign keys
+    sire_key,
+    trainer_key,
+
+    -- 3. Descriptive attributes
+    age,
+    sex,
+    sire_name,
+
+    -- 4. Temporal columns (ALWAYS LAST)
+    update_dt,
+    last_seen_dt,
+    is_active,
+    create_dt
+FROM dim_horses
+```
+
+### Example Fact Table Structure
+```sql
+SELECT
+    -- 1. Surrogate key
+    entry_key,
+
+    -- 2. Foreign keys
+    race_key,
+    horse_key,
+    trainer_key,
+
+    -- 3. Natural keys (frequently filtered)
+    track_name,
+    race_date,
+
+    -- 4. Measures
+    speed_figure,
+    odds,
+
+    -- 5. Metadata / Lineage (ALWAYS LAST)
+    staging_id,   -- Link to staging (enables full lineage to raw_scraped_data)
+    data_hash,    -- Content hash for deduplication
+    scraped_dt    -- Scrape timestamp
+FROM fct_race_entries
+```
+
+### Fact Table Metadata/Lineage Standard
+
+**ALL fact tables MUST include these three fields in this exact order (ALWAYS LAST):**
+
+```sql
+-- Metadata / Lineage (ALWAYS LAST)
+staging_id,   -- INTEGER: FK to staging table id (which links to raw_scraped_data.id)
+data_hash,    -- TEXT: SHA-256 hash of content for deduplication
+scraped_dt    -- TIMESTAMP: When the data was scraped
+```
+
+**DO NOT include `source_url` in fact tables** - it's redundant since you can get it via:
+```sql
+SELECT f.*, s.source_url
+FROM fct_table f
+JOIN stg_table s ON f.staging_id = s.id
+```
+
+**Exception:** User-facing URLs (like `article_url` in `fct_news`) can be kept for convenience.
+
+**Rationale:**
+- `staging_id` enables complete lineage: fact → staging → raw_scraped_data
+- `data_hash` allows deduplication without joins
+- `scraped_dt` tracks when data was collected
+- Removing `source_url` reduces storage and follows DRY principle
+
 ## Data Quality Features
 
 - **Clean Text Extraction**: `clean_text()` helper method removes newlines and normalizes whitespace

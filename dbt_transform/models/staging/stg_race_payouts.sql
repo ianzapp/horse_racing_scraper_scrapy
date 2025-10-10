@@ -1,16 +1,31 @@
-{{ config(materialized='view') }}
+{{
+  config(
+    materialized='incremental',
+    unique_key='id',
+    on_schema_change='fail'
+  )
+}}
 
-WITH cleaned_payouts AS (
+with source_data as (
+    select
+        id,
+        spider_name,
+        raw_data,
+        source_url,
+        data_hash,
+        created_at as scraped_dt
+    from {{ source('public', 'raw_scraped_data') }}
+    where item_type = 'race_payout'
+
+    {% if is_incremental() %}
+        and created_at > (select max(scraped_dt) from {{ this }})
+    {% endif %}
+),
+
+cleaned_payouts AS (
     SELECT
         id,
         spider_name,
-        source_url,
-        crawl_run_id,
-        data_hash,
-        created_at,
-
-        -- Create business key for deduplication
-        {{ dbt_utils.generate_surrogate_key(['source_url', 'data_hash']) }} as business_key,
 
         -- Extract and clean basic race information
         TRIM(raw_data->>'track_name') as track_name,
@@ -93,11 +108,14 @@ WITH cleaned_payouts AS (
             AND raw_data->>'win_pool' ~ '^[0-9]*\.?[0-9]+$'
             THEN CAST(raw_data->>'win_pool' AS DECIMAL(12,2))
             ELSE NULL
-        END as win_pool
+        END as win_pool,
 
-    FROM {{ source('public', 'raw_scraped_data') }}
-    WHERE item_type = 'race_payout'
-        AND raw_data IS NOT NULL
+        -- Metadata (at end)
+        source_url,
+        data_hash,
+        scraped_dt
+
+    FROM source_data
 )
 
 SELECT * FROM cleaned_payouts

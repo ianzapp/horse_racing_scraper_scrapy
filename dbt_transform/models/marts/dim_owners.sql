@@ -1,26 +1,26 @@
 {{
   config(
     materialized='table',
-    unique_key='trainer_key'
+    unique_key='owner_key'
   )
 }}
 
-with trainer_data as (
+with owner_data as (
     select
-        trainer,
+        owner_name,
         max(scraped_dt) as update_dt,
         max(scraped_dt::date) as last_seen_dt,
-        count(*) as total_entries
-    from {{ ref('stg_race_entries') }}
-    where trainer is not null and trainer != ''
-    group by trainer
+        count(*) as total_horses
+    from {{ ref('stg_hrn_speed_results') }}
+    where owner_name is not null and owner_name != ''
+    group by owner_name
 ),
 
 final as (
     select
-        {{ dbt_utils.generate_surrogate_key(['trainer']) }} as trainer_key,
-        trainer as trainer_name,
-        total_entries,
+        {{ dbt_utils.generate_surrogate_key(['owner_name']) }} as owner_key,
+        owner_name,
+        total_horses,
 
         -- Temporal columns (standardized at end)
         update_dt,
@@ -31,7 +31,7 @@ final as (
             else false
         end as is_active,
         current_timestamp as create_dt
-    from trainer_data
+    from owner_data
 )
 
 select * from final

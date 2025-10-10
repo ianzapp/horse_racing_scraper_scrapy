@@ -7,7 +7,8 @@
 
 with news_data as (
     select
-        n.*
+        n.*,
+        {{ dbt_utils.generate_surrogate_key(['source_url', 'data_hash']) }} as business_key
     from {{ ref('stg_news') }} n
 ),
 
@@ -30,11 +31,10 @@ final as (
         source_url as article_url,
         tags,
 
-        -- Metadata
-        business_key,
-        source_url,
-        crawl_run_id,
-        created_at
+        -- Metadata / Lineage
+        id as staging_id,
+        data_hash,
+        scraped_dt
 
     from news_data
     where title is not null  -- Only include articles with content
